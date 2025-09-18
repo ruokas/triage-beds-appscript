@@ -480,7 +480,9 @@
   function openModal(bedLabel, alreadyMine){
     reservation.bedLabel=bedLabel; reservation.ok=false;
     document.getElementById("modal-title").textContent="Įrašyti pacientą";
-    document.getElementById("modal-backdrop").style.display="flex";
+    const backdrop=document.getElementById("modal-backdrop");
+    backdrop.style.display="flex";
+    backdrop.setAttribute("aria-hidden","false");
     if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
 
     // Auto-focus + Tab seka: Vardas -> Gydytojas
@@ -504,9 +506,21 @@
     }).reserveBed(bedLabel);
   }
 
+  function isModalOpen(){
+    return document.getElementById("modal-backdrop").style.display==="flex";
+  }
+
   function closeModal(){
-    document.getElementById("modal-backdrop").style.display="none";
+    const backdrop=document.getElementById("modal-backdrop");
+    backdrop.style.display="none";
+    backdrop.setAttribute("aria-hidden","true");
     if(!refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
+  }
+  function cancelModal(){
+    closeModal();
+    releaseReservation();
+    clearForm();
+    fetchAllAndRender();
   }
   function setFormEnabled(enabled){
     ["fld-name","fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
@@ -531,9 +545,17 @@
     }
   });
   document.addEventListener('keydown',(e)=>{
-    // global esc -> uždaryti meniu/confirm
-    if(e.key==="Escape"){ hideCtxMenu(); hideConfirm(); }
-    if(document.getElementById("modal-backdrop").style.display!=="flex") return;
+    const modalVisible=isModalOpen();
+    // global esc -> uždaryti meniu/confirm/modal
+    if(e.key==="Escape"){
+      hideCtxMenu(); hideConfirm();
+      if(modalVisible){
+        e.preventDefault();
+        cancelModal();
+      }
+      return;
+    }
+    if(!modalVisible) return;
     if(e.key>="1" && e.key<="5"){
       document.getElementById('fld-triage').value=e.key;
       const el=document.querySelector(`.chip[data-t="${e.key}"]`);
@@ -548,9 +570,7 @@
   });
 
   // Mygtukai
-  document.getElementById("btn-cancel").addEventListener("click", ()=>{
-    closeModal(); releaseReservation(); clearForm(); fetchAllAndRender();
-  });
+  document.getElementById("btn-cancel").addEventListener("click", cancelModal);
   document.getElementById("btn-confirm").addEventListener("click", ()=>{
     if(!reservation.ok) return;
     const btn=document.getElementById("btn-confirm");
