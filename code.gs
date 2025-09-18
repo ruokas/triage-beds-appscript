@@ -75,23 +75,27 @@ function getNursesFromLenta_() {
   const out = {};
   if (!sh) return out;
 
-  const gv = (a1) => String(sh.getRange(a1).getDisplayValue() || "").trim();
+  const addresses = ["A2", "A3", "A4", "A10", "A18", "A27", "A36", "J2"];
+  const values = sh
+    .getRangeList(addresses)
+    .getRanges()
+    .map((range) => String(range.getDisplayValue() || "").trim());
+
+  const [it1, it2, zona1, zona2, zona3, zona4, zona5, amb] = values;
 
   // Zona IT – sujungiam A2 ir A3, jei abu yra
-  const it1 = gv("A2");
-  const it2 = gv("A3");
   const it = [it1, it2].filter(Boolean).join(" / ");
   out["Zona IT"] = it || "Nenurodyta";
 
   // Merged zonos – imame viršutinį kairį langelį
-  out["Zona 1"] = gv("A4")  || "Nenurodyta";   // A4–A9
-  out["Zona 2"] = gv("A10") || "Nenurodyta";   // A10–A17
-  out["Zona 3"] = gv("A18") || "Nenurodyta";   // A18–A26
-  out["Zona 4"] = gv("A27") || "Nenurodyta";   // A27–A35
-  out["Zona 5"] = gv("A36") || "Nenurodyta";   // A36–A40
+  out["Zona 1"] = zona1 || "Nenurodyta";   // A4–A9
+  out["Zona 2"] = zona2 || "Nenurodyta";   // A10–A17
+  out["Zona 3"] = zona3 || "Nenurodyta";   // A18–A26
+  out["Zona 4"] = zona4 || "Nenurodyta";   // A27–A35
+  out["Zona 5"] = zona5 || "Nenurodyta";   // A36–A40
 
   // Ambulatorija – J2 (J2:J16 gali būti sujungtas)
-  out["Ambulatorija"] = gv("J2") || "Nenurodyta";
+  out["Ambulatorija"] = amb || "Nenurodyta";
 
   return out;
 }
