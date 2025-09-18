@@ -312,7 +312,10 @@
   let currentData=null;
   let currentLayout=null;
   let reservation={ bedLabel:null, keepAliveTimer:null, keepAliveName:null, ok:false };
+  const REFRESH_INTERVAL=10000;
   let refreshTimer=null;
+  let isLoading=false;
+  let pendingRefreshDelay=null;
   let lastUndoToken=null, undoCountdown=null;
   let dragging=false, dragFrom=null;
 
@@ -320,19 +323,105 @@
   let ctxTargetBed=null, ctxX=0, ctxY=0;
   let confirmTargetBed=null;
 
+  let autoRefreshPauseCount=0;
+
+  function cancelScheduledFetch(){
+    if(refreshTimer){
+      clearTimeout(refreshTimer);
+      refreshTimer=null;
+    }
+  }
+
+  function normalizeDelay(delay){
+    if(typeof delay!=="number" || !Number.isFinite(delay)){
+      return REFRESH_INTERVAL;
+    }
+    return Math.max(0, delay);
+  }
+
+  function queueNextFetch(delay){
+    const wait=normalizeDelay(delay);
+    if(pendingRefreshDelay===null || wait<pendingRefreshDelay){
+      pendingRefreshDelay=wait;
+    }
+  }
+
+  function flushNextFetch(){
+    if(pendingRefreshDelay===null || isLoading || autoRefreshPauseCount>0){
+      return;
+    }
+    const wait=pendingRefreshDelay;
+    pendingRefreshDelay=null;
+    cancelScheduledFetch();
+    refreshTimer=setTimeout(()=>{
+      refreshTimer=null;
+      fetchAllAndRender();
+    }, wait);
+  }
+
+  function planNextFetch(delay=REFRESH_INTERVAL){
+    queueNextFetch(delay);
+    flushNextFetch();
+  }
+
+  function pauseAutoRefresh(){
+    autoRefreshPauseCount++;
+    cancelScheduledFetch();
+  }
+
+  function resumeAutoRefresh(delay=REFRESH_INTERVAL){
+    if(autoRefreshPauseCount>0){
+      autoRefreshPauseCount--;
+    }
+    if(autoRefreshPauseCount===0){
+      planNextFetch(delay);
+    }
+  }
+
+  function completeFetchCycle(hadError){
+    isLoading=false;
+    if(pendingRefreshDelay===null){
+      pendingRefreshDelay=REFRESH_INTERVAL;
+    }
+    if(hadError && pendingRefreshDelay<2000){
+      pendingRefreshDelay=2000;
+    }
+    flushNextFetch();
+  }
+
   function formatTime(d){ return new Date(d).toLocaleTimeString(); }
 
   // ------- Duomenys + render -------
   function fetchAllAndRender(){
+    if(isLoading){
+      queueNextFetch(0);
+      return;
+    }
+    isLoading=true;
+    cancelScheduledFetch();
     const userName = getLocalUserName();
     google.script.run
-      .withSuccessHandler(({zonesPayload, layout, doctors, recent, now})=>{
-        currentData=zonesPayload;
-        currentLayout=Array.isArray(layout)?layout:null;
-        renderZones(zonesPayload, layout);
-        populateDoctors(doctors);
-        renderRecent(recent || []);
-        document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
+      .withSuccessHandler((response)=>{
+        try{
+          const { zonesPayload, layout, doctors, recent, now } = response || {};
+          currentData=zonesPayload;
+          currentLayout=Array.isArray(layout)?layout:null;
+          renderZones(zonesPayload, layout);
+          populateDoctors(doctors);
+          renderRecent(Array.isArray(recent)?recent:[]);
+          const infoEl=document.getElementById("last-updated");
+          if(infoEl){
+            infoEl.textContent="Atnaujinta: "+formatTime(now);
+          }
+        }catch(err){
+          console.error("Nepavyko apdoroti lovų duomenų", err);
+        }finally{
+          completeFetchCycle(false);
+        }
+      })
+      .withFailureHandler(err=>{
+        console.error("Nepavyko gauti lovų sąrašo", err);
+        completeFetchCycle(true);
       })
       .sidebarGetAll({ userName });
   }
@@ -420,7 +509,7 @@
             el.setAttribute("draggable","true");
             el.addEventListener("dragstart",(ev)=>{
               dragging=true; dragFrom=b.label;
-              if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
+              pauseAutoRefresh();
               el.classList.add("dragging");
               ev.dataTransfer.setData("text/plain", b.label);
               ev.dataTransfer.effectAllowed="move";
@@ -428,7 +517,7 @@
             });
             el.addEventListener("dragend", ()=>{
               dragging=false; dragFrom=null; el.classList.remove("dragging");
-              if(!reservation.bedLabel && !refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
+              resumeAutoRefresh();
               document.querySelectorAll(".bed.drop-ok,.bed.swap-ok,.bed.drop-no").forEach(x=>x.classList.remove("drop-ok","swap-ok","drop-no"));
             });
 
@@ -548,7 +637,7 @@
     const backdrop=document.getElementById("modal-backdrop");
     backdrop.style.display="flex";
     backdrop.setAttribute("aria-hidden","false");
-    if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
+    pauseAutoRefresh();
 
     // Auto-focus + Tab seka: Vardas -> Gydytojas
     const nameInput=document.getElementById("fld-name");
@@ -580,7 +669,7 @@
     const backdrop=document.getElementById("modal-backdrop");
     backdrop.style.display="none";
     backdrop.setAttribute("aria-hidden","true");
-    if(!refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
+    resumeAutoRefresh();
   }
   function cancelModal(){
     closeModal();
@@ -789,7 +878,7 @@
   window.addEventListener('resize', ()=>{ hideCtxMenu(); hideConfirm(); });
 
   // Start
-  function sidebarInit(){ fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
+  function sidebarInit(){ fetchAllAndRender(); }
   function sidebarGetAll(){} // placeholder
   sidebarInit();
 </script>
