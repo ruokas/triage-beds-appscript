@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8" />
+  <style>
+    :root{
+      --bg:#f8fafc; --card:#ffffff; --text:#111827; --muted:#6b7280; --line:#e5e7eb;
+      --free:#1b5e20; --occ:#7f1d1d; --res:#92400e;
+      --free-bg:#e8f5e9; --occ-bg:#fdecea; --res-bg:#fff7ed; --chip:#f3f4f6; --accent:#22c55e;
+    }
+    html,body{margin:0;padding:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    body{padding:5px;font-size:13px}
+    .legend{display:flex;align-items:center;gap:8px;margin:0 0 6px 0;font-size:11px;color:var(--muted)}
+    .dot{width:8px;height:8px;border-radius:999px;display:inline-block;border:1px solid var(--line)}
+    .dot.free{background:var(--free-bg);border-color:#a7d7a9}
+    .dot.res{background:var(--res-bg);border-color:#fcd34d}
+    .dot.occ{background:var(--occ-bg);border-color:#f5c2c7}
+    .zone{border:1px solid var(--line);border-radius:10px;padding:5px;margin-bottom:5px;background:var(--card)}
+    .zone-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px}
+    .zone-title{font-weight:600;font-size:13px}
+    .nurse{font-size:11px;color:var(--muted);white-space:nowrap}
+    .progress{width:100%;background:var(--line);height:4px;border-radius:999px;margin:4px 0 6px;overflow:hidden}
+    .progress-fill{background:linear-gradient(90deg,#22c55e,#86efac);height:100%;width:0%;transition:width .25s ease}
+    .bed-rows{display:flex;flex-direction:column;gap:4px}
+    .bed-row{display:flex;flex-wrap:wrap;gap:4px}
+    .bed{padding:4px 7px;border-radius:6px;background:var(--chip);border:1px solid var(--line);font-size:12px;line-height:1.4;user-select:none;white-space:nowrap;cursor:default}
+    .bed.free{background:var(--free-bg);border-color:#a7d7a9;color:var(--free);cursor:pointer}
+    .bed.free:hover{filter:brightness(0.98)}
+    .bed.occupied{background:var(--occ-bg);border-color:#f5c2c7;color:var(--occ)}
+    .bed.reserved{background:var(--res-bg);border-color:#fcd34d;color:var(--res)}
+    .bed.draggable{cursor:grab}
+    .bed.dragging{opacity:.6;outline:2px dashed #9ca3af;cursor:grabbing}
+    .bed.drop-ok{box-shadow:inset 0 0 0 2px var(--accent)}
+    .bed.swap-ok{box-shadow:inset 0 0 0 2px #3b82f6}
+    .bed.drop-no{opacity:.5}
+    #last-updated{font-size:11px;color:var(--muted);margin:6px 2px 8px;text-align:right}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9000}
+    .modal{width:100%;max-width:460px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+    .modal h3{margin:0 0 6px;font-size:15px}
+    .modal .hint{font-size:11px;color:var(--muted);margin-bottom:8px}
+    .field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+    .field label{font-size:11px;color:var(--muted)}
+    .field input[type="text"],.field textarea,.field select{background:#fff;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px;outline:none}
+    .field textarea{resize:vertical;min-height:60px}
+    .chip-row{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+    .chip{padding:4px 10px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid transparent;color:#fff}
+    .chip-1{background:#3b82f6}
+    .chip-2{background:#ef4444}
+    .chip-3{background:#f59e0b}
+    .chip-4{background:#22c55e}
+    .chip-5{background:#9ca3af}
+    .chip.active{box-shadow:inset 0 0 0 2px rgba(0,0,0,.2)}
+    .actions{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+    .btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .btn:hover{background:#f9fafb}
+    .btn.primary{border-color:#a7d7a9;background:var(--free-bg);color:var(--free)}
+    .btn.primary:hover{filter:brightness(0.98)}
+    .btn.danger{border-color:#f5c2c7;background:var(--occ-bg);color:var(--occ)}
+    .btn.danger:hover{filter:brightness(0.98)}
+    .recent{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:5px;margin-top:5px}
+    .recent h4{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+    .rlist{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
+    .ritem{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.35}
+    .ritem .t{font-variant-numeric:tabular-nums;color:var(--muted);width:44px;flex:0 0 44px}
+    .ritem .s{flex:1}
+    .ctx-menu,.confirm-pop{position:fixed;display:none;z-index:10001;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);min-width:200px}
+    .ctx-list{margin:4px;padding:4px}
+    .ctx-item{padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+    .ctx-item:hover{background:#f3f4f6}
+    .confirm-pop .body{padding:10px}
+    .confirm-pop .title{font-size:13px;margin-bottom:8px}
+    .confirm-pop .actions{display:flex;gap:8px;justify-content:flex-end;padding:8px}
+    .userline{display:flex;align-items:center;gap:8px;margin:0 0 8px 0;font-size:12px;color:#374151}
+    .userline input{font-size:12px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;min-width:95px;outline:none}
+    .userline input:focus{border-color:#9ca3af;box-shadow:0 0 0 2px rgba(156,163,175,.25)}
+    .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;border:1px solid transparent;user-select:none}
+    .b-ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+    .b-warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+    .b-muted{background:#f3f4f6;border-color:#e5e7eb;color:#6b7280}
+    .blink{animation:blink 600ms ease-out}
+    @keyframes blink{0%{background:#bbf7d0}100%{background:#ecfdf5}}
+  </style>
+</head>
+<body>
+
+<div class="userline">
+  <span>Vardas:</span>
+  <input id="fld-username" type="text" placeholder="Įveskite" />
+  <span id="user-badge" class="badge b-muted">
+    <span id="user-badge-icon">•</span>
+    <span id="user-badge-text">Neįvesta</span>
+  </span>
+</div>
+
+<div class="legend">
+  <span class="dot free"></span> Laisva
+  <span class="dot res"></span> Rezervuota
+  <span class="dot occ"></span> Užimta
+</div>
+
+<div id="zones"></div>
+<div id="last-updated"></div>
+
+<div class="recent">
+  <h4>Paskutiniai veiksmai</h4>
+  <div id="recent-actions" class="rlist"></div>
+</div>
+
+<!-- Modal -->
+<div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal" role="document" id="modal">
+    <h3 id="modal-title">Įrašyti pacientą</h3>
+    <div class="hint" id="modal-subtitle">Kol pildote duomenis, ši lova pažymėta kaip „rezervuota“.</div>
+    <div class="field">
+      <label for="fld-name">Pacientas</label>
+      <input type="text" id="fld-name" placeholder="Vardas Pavardė" />
+    </div>
+    <div class="field">
+      <label>Triažo kategorija</label>
+      <input type="hidden" id="fld-triage" />
+      <div class="chip-row" id="triage-chips">
+        <div class="chip chip-1" data-t="1">1</div>
+        <div class="chip chip-2" data-t="2">2</div>
+        <div class="chip chip-3" data-t="3">3</div>
+        <div class="chip chip-4" data-t="4">4</div>
+        <div class="chip chip-5" data-t="5">5</div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fld-doctor">Gydytojas</label>
+      <select id="fld-doctor"></select>
+    </div>
+    <div class="field">
+      <label for="fld-comment">Komentaras</label>
+      <textarea id="fld-comment" placeholder="Trumpas komentaras…"></textarea>
+    </div>
+    <div class="mini" id="reserve-status" style="display:none;font-size:11px;color:#6b7280;">Rezervuojama…</div>
+    <div class="actions">
+      <button class="btn danger" id="btn-cancel">Atšaukti</button>
+      <button class="btn primary" id="btn-confirm" disabled>Patvirtinti</button>
+    </div>
+  </div>
+</div>
+
+<div class="undo-bar" id="undoBar">
+  <span id="undoMsg">Įrašyta. </span>
+  <span class="link" id="undoLink">Atšaukti</span>
+  <span class="timer" id="undoTimer">(10s)</span>
+</div>
+
+<div id="ctxMenu" class="ctx-menu" role="menu" aria-hidden="true">
+  <div class="ctx-list">
+    <div class="ctx-item" id="ctxDischarge">Išrašyti pacientą</div>
+  </div>
+</div>
+
+<div id="confirmPop" class="confirm-pop" role="dialog" aria-hidden="true">
+  <div class="body">
+    <div class="title">Ar tikrai norite ištrinti?</div>
+    <div class="actions">
+      <button class="btn danger" id="confirmYes">Taip</button>
+      <button class="btn" id="confirmNo">Ne</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ------- Helpers -------
+  function getUserDisplayName(){ return (document.getElementById('fld-username')?.value || '').trim(); }
+
+  // ------- Username badge -------
+  (function(){
+    let savedName = "";
+    const el = document.getElementById("fld-username");
+    const badge = document.getElementById("user-badge");
+    const bText = document.getElementById("user-badge-text");
+    const bIcon = document.getElementById("user-badge-icon");
+    function setBadge(state){
+      badge.classList.remove("b-ok","b-warn","b-muted","blink");
+      if(state==="ok"){ badge.classList.add("b-ok"); bText.textContent="Patvirtinta"; bIcon.textContent="✓"; }
+      else if(state==="warn"){ badge.classList.add("b-warn"); bText.textContent="Nepatvirtinta"; bIcon.textContent="!"; }
+      else { badge.classList.add("b-muted"); bText.textContent="Neįvesta"; bIcon.textContent="•"; }
+    }
+    function refreshState(){
+      const v = (el.value||"").trim();
+      if(!v){ setBadge("muted"); return; }
+      setBadge(v===savedName ? "ok" : "warn");
+    }
+    function saveNow(){
+      const v = (el.value||"").trim();
+      if(!v || v===savedName) { refreshState(); return; }
+      google.script.run.withSuccessHandler(()=>{
+        savedName = v; setBadge("ok"); badge.classList.add("blink"); setTimeout(()=>badge.classList.remove("blink"), 650);
+      }).setUsername(v);
+    }
+    google.script.run.withSuccessHandler(function(stored){
+      savedName = stored||""; el.value = savedName; refreshState();
+    }).getUsername();
+    el.addEventListener("input", refreshState);
+    el.addEventListener("blur", saveNow);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveNow(); } });
+  })();
+
+  // ------- State -------
+  let currentData=null;
+  let reservation={ bedLabel:null, keepAliveTimer:null, ok:false };
+  let refreshTimer=null;
+  let lastUndoToken=null, undoCountdown=null;
+  let dragging=false, dragFrom=null;
+  let ctxTargetBed=null, ctxX=0, ctxY=0;
+  let confirmTargetBed=null;
+  function formatTime(d){ return new Date(d).toLocaleTimeString(); }
+
+  // ------- Fetch + render -------
+  function fetchAllAndRender(){
+    const actor = getUserDisplayName();
+    google.script.run
+      .withFailureHandler(err => {
+        console.error('sidebarGetAll failed:', err);
+        document.getElementById('zones').innerHTML = '<div style="padding:8px;color:#6b7280">Nepavyko nuskaityti duomenų…</div>';
+      })
+      .withSuccessHandler(res => {
+        if(!res || !res.zonesPayload){
+          document.getElementById('zones').innerHTML = '<div style="padding:8px;color:#6b7280">Nėra duomenų…</div>';
+          document.getElementById('last-updated').textContent = '';
+          return;
+        }
+        const { zonesPayload, doctors = [], recent = [], now = new Date() } = res;
+        currentData = zonesPayload;
+        renderZones(zonesPayload);
+        populateDoctors(doctors);
+        renderRecent(recent);
+        document.getElementById("last-updated").textContent = "Atnaujinta: " + new Date(now).toLocaleTimeString();
+      })
+      .sidebarGetAll({ actor });
+  }
+
+  function renderZones(data){
+    if(!data || !data.beds) return;
+    const zonasDiv=document.getElementById("zones");
+    zonasDiv.innerHTML="";
+    const amb = Array.from({length:15},(_,i)=>`AMB${i+1}`);
+    const layout={
+      "Zona IT":[["IT1","IT2"]],
+      "Zona 1":[["1","2","3","P1","P2","P3"]],
+      "Zona 2":[["4","5","6","P4","P5","P6","S4","S5","S6"]],
+      "Zona 3":[["7","8","9","P7","P8","P9","S7","S8","S9"]],
+      "Zona 4":[["10","11","12","P10","P11","P12","S10","S11","S12"]],
+      "Zona 5":[["13","14","15","16","17","121A","121B","IZO"]],
+      "Ambulatorija":[amb.slice(0,8), amb.slice(8)]
+    };
+    const allBeds=Object.values(data.beds).flatMap(z=>z.beds);
+    Object.entries(layout).forEach(([zoneName,rows])=>{
+      const zoneBeds=rows.flat().map(l=>allBeds.find(b=>b.label===l)).filter(Boolean);
+      const occCount=zoneBeds.filter(b=>b.occupied||b.reservedByOther||b.reservedByMe).length;
+      const occRatio=zoneBeds.length?(occCount/zoneBeds.length):0;
+      const zoneEl=document.createElement("div"); zoneEl.className="zone";
+      const header=document.createElement("div"); header.className="zone-header";
+      const title=document.createElement("div"); title.className="zone-title"; title.textContent=zoneName+" – "+Math.round(occRatio*100)+"%";
+      const nurse=document.createElement("div"); nurse.className="nurse"; nurse.textContent="Slaug: "+(data.nurses[zoneName]||"Nenurodyta");
+      header.appendChild(title); header.appendChild(nurse);
+      const progress=document.createElement("div"); progress.className="progress";
+      const fill=document.createElement("div"); fill.className="progress-fill"; fill.style.width=(occRatio*100).toFixed(0)+"%";
+      progress.appendChild(fill);
+      const rowsEl=document.createElement("div"); rowsEl.className="bed-rows";
+      rows.forEach(r=>{
+        const rowEl=document.createElement("div"); rowEl.className="bed-row";
+        r.forEach(label=>{
+          const b=allBeds.find(x=>x.label===label); if(!b) return;
+          const el=document.createElement("div"); el.className="bed"; el.textContent=b.label;
+          if (b.occupied && b.patient) el.title = b.patient;
+          else if (b.reservedByOther) el.title = "Rezervuota kito naudotojo";
+          else if (b.reservedByMe) { el.title = "Jūsų rezervuota"; el.onclick=()=>openModal(b.label,true); }
+          else el.title = "Laisva";
+          if(b.occupied){
+            el.classList.add("occupied","draggable"); el.setAttribute("draggable","true");
+            el.addEventListener("dragstart",(ev)=>{
+              dragging=true; dragFrom=b.label;
+              if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
+              el.classList.add("dragging");
+              ev.dataTransfer.setData("text/plain", b.label);
+              ev.dataTransfer.effectAllowed="move";
+            });
+            el.addEventListener("dragend", ()=>{
+              dragging=false; dragFrom=null; el.classList.remove("dragging");
+              if(!reservation.bedLabel && !refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
+              document.querySelectorAll(".bed.drop-ok,.bed.swap-ok,.bed.drop-no").forEach(x=>x.classList.remove("drop-ok","swap-ok","drop-no"));
+            });
+            el.addEventListener("dragover",(ev)=>{
+              if(!dragging || !dragFrom || dragFrom===b.label) return;
+              const fromIsAmb = dragFrom.startsWith('AMB');
+              const toIsAmb   = b.label.startsWith('AMB');
+              const allowedSwap = (fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb);
+              if(allowedSwap){ ev.preventDefault(); el.classList.add("swap-ok"); }
+            });
+            el.addEventListener("dragleave",()=>{ el.classList.remove("swap-ok"); });
+            el.addEventListener("drop",(ev)=>{
+              ev.preventDefault(); el.classList.remove("swap-ok");
+              const from=ev.dataTransfer.getData("text/plain")||dragFrom; const to=b.label;
+              if(!from || from===to) return;
+              const fromIsAmb = from.startsWith('AMB'); const toIsAmb = to.startsWith('AMB');
+              if ((fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb)) {
+                google.script.run.withSuccessHandler(res=>{
+                  if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko sukeisti."); return; }
+                  showUndo(res.undoToken,"Lovos sukeistos. "); fetchAllAndRender();
+                }).swapBeds({bedA:from, bedB:to, userDisplayName:getUserDisplayName()});
+              }
+            });
+            el.addEventListener('contextmenu', (ev)=>{
+              ev.preventDefault(); showCtxMenu(b.label, ev.clientX, ev.clientY);
+            });
+          } else if (b.reservedByOther){
+            el.classList.add("reserved");
+          } else if (b.reservedByMe){
+            el.classList.add("reserved");
+          } else {
+            el.classList.add("free");
+            el.addEventListener("dragover",(ev)=>{
+              if(!dragging || !dragFrom || dragFrom===b.label){ el.classList.add("drop-no"); return; }
+              const fromIsAmb = dragFrom.startsWith('AMB'); const toIsAmb = b.label.startsWith('AMB');
+              const allowed = (fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb) || (fromIsAmb && !toIsAmb);
+              if(allowed){ ev.preventDefault(); el.classList.add("drop-ok"); el.classList.remove("drop-no"); ev.dataTransfer.dropEffect="move"; }
+              else { el.classList.add("drop-no"); }
+            });
+            el.addEventListener("dragleave",()=>{ el.classList.remove("drop-ok","drop-no"); });
+            el.addEventListener("drop",(ev)=>{
+              ev.preventDefault(); el.classList.remove("drop-ok","drop-no");
+              const from=ev.dataTransfer.getData("text/plain")||dragFrom; const to=b.label;
+              if(!from || from===to) return;
+              google.script.run.withSuccessHandler(res=>{
+                if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko perkelti."); return; }
+                showUndo(res.undoToken,"Pacientas perkeltas. ");
+                fetchAllAndRender();
+              }).movePatient({fromBed:from,toBed:to, userDisplayName:getUserDisplayName()});
+            });
+            el.onclick=()=>{ handleFreeBedClick(b.label); };
+            el.addEventListener('contextmenu',(ev)=>ev.preventDefault());
+          }
+          rowEl.appendChild(el);
+        });
+        rowsEl.appendChild(rowEl);
+      });
+      zoneEl.appendChild(header); zoneEl.appendChild(progress); zoneEl.appendChild(rowsEl);
+      zonasDiv.appendChild(zoneEl);
+    });
+  }
+
+  function populateDoctors(list){
+    const sel=document.getElementById("fld-doctor");
+    const cur=sel.value; sel.innerHTML="";
+    const def=document.createElement("option"); def.value=""; def.textContent="— Pasirinkite gydytoją —"; sel.appendChild(def);
+    (list||[]).forEach(name=>{
+      const o=document.createElement("option"); o.value=name; o.textContent=name;
+      if(name===cur) o.selected=true; sel.appendChild(o);
+    });
+  }
+
+  function renderRecent(list){
+    const box=document.getElementById('recent-actions');
+    if(!box) return;
+    if(!list.length){
+      box.innerHTML='<div class="ritem"><div class="t">—</div><div class="s">Nėra įrašų</div></div>';
+      return;
+    }
+    box.innerHTML=list.map(it=>{
+      let t=''; try{ t=new Date(it.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){}
+      const s=it.summary || (it.action || '');
+      return `<div class="ritem"><div class="t">${t}</div><div class="s">${escapeHtml(s)}</div></div>`;
+    }).join('');
+  }
+  function escapeHtml(str){
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  // ------- Reserve flow -------
+  function handleFreeBedClick(bedLabel){ openModal(bedLabel,false); }
+  function openModal(bedLabel, alreadyMine){
+    reservation.bedLabel=bedLabel; reservation.ok=false;
+    document.getElementById("modal-backdrop").style.display="flex";
+    if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
+    const nameInput=document.getElementById("fld-name");
+    const doctorSel=document.getElementById("fld-doctor");
+    setTimeout(()=>nameInput.focus(),0);
+    nameInput.addEventListener("keydown",(e)=>{ if(e.key==="Tab" && !e.shiftKey){ e.preventDefault(); doctorSel.focus(); }});
+    setFormEnabled(false); showReserveStatus(true);
+    if(alreadyMine){
+      reservation.ok=true; setFormEnabled(true); showReserveStatus(false); startKeepAlive(bedLabel); return;
+    }
+    google.script.run.withSuccessHandler(res=>{
+      if(res && res.ok){
+        reservation.ok=true; setFormEnabled(true); showReserveStatus(false); startKeepAlive(bedLabel);
+      }else{
+        showReserveStatus(false); alert((res && res.msg)?res.msg:"Nepavyko rezervuoti lovos."); closeModal();
+      }
+    }).reserveBed({ bedLabel, actor: getUserDisplayName() });
+  }
+  function closeModal(){
+    document.getElementById("modal-backdrop").style.display="none";
+    if(!refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
+  }
+  function setFormEnabled(enabled){
+    ["fld-name","fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.disabled=!enabled;
+    });
+  }
+  function showReserveStatus(show){ document.getElementById("reserve-status").style.display=show?"block":"none"; }
+  function startKeepAlive(bedLabel){
+    stopKeepAlive();
+    reservation.keepAliveTimer=setInterval(()=>{ google.script.run.keepAliveReservation({ bedLabel, actor:getUserDisplayName() }); },60000);
+  }
+  function stopKeepAlive(){ if(reservation.keepAliveTimer){ clearInterval(reservation.keepAliveTimer); reservation.keepAliveTimer=null; } }
+  function releaseReservation(){
+    stopKeepAlive();
+    if(!reservation.bedLabel) return;
+    google.script.run.releaseReservation({ bedLabel: reservation.bedLabel, actor:getUserDisplayName() });
+    reservation.bedLabel=null;
+  }
+
+  document.addEventListener('click',(e)=>{
+    if(e.target.classList && e.target.classList.contains('chip')){
+      const v=e.target.getAttribute('data-t');
+      document.getElementById('fld-triage').value=v;
+      document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  });
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==="Escape"){ hideCtxMenu(); hideConfirm(); }
+    if(document.getElementById("modal-backdrop").style.display!=="flex") return;
+    if(e.key>="1" && e.key<="5"){
+      document.getElementById('fld-triage').value=e.key;
+      const el=document.querySelector(`.chip[data-t="${e.key}"]`);
+      if(el){ document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+    }
+    if(e.key==="Enter"){
+      const active=document.activeElement;
+      if(active && active.id==="fld-comment" && !e.ctrlKey) return;
+      const btn=document.getElementById("btn-confirm");
+      if(!btn.disabled) btn.click();
+    }
+  });
+
+  document.getElementById("btn-cancel").addEventListener("click", ()=>{
+    closeModal(); releaseReservation(); clearForm(); fetchAllAndRender();
+  });
+  document.getElementById("btn-confirm").addEventListener("click", ()=>{
+    if(!reservation.ok) return;
+    const btn=document.getElementById("btn-confirm");
+    btn.textContent="Įrašoma…"; btn.disabled=true;
+    const triageVal=document.getElementById("fld-triage").value;
+    const isAmb = reservation.bedLabel && reservation.bedLabel.startsWith('AMB');
+    const payload={
+      bedLabel:reservation.bedLabel,
+      patientName:document.getElementById("fld-name").value.trim(),
+      triage: triageVal || "",
+      doctor:document.getElementById("fld-doctor").value,
+      comment:document.getElementById("fld-comment").value.trim()
+    };
+    if(!payload.bedLabel || !payload.patientName || !payload.doctor){
+      alert("Užpildykite paciento ir gydytojo laukus."); btn.textContent="Patvirtinti"; btn.disabled=false; return;
+    }
+    if(!isAmb && !payload.triage){
+      alert("Pasirinkite triažo kategoriją (1–5)."); btn.textContent="Patvirtinti"; btn.disabled=false; return;
+    }
+    google.script.run.withSuccessHandler(res=>{
+      btn.textContent="Patvirtinti"; btn.disabled=false;
+      if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko įrašyti į lentą."); return; }
+      closeModal(); releaseReservation(); clearForm();
+      showUndo(res.undoToken,"Įrašyta. "); fetchAllAndRender();
+    }).assignBed({ ...payload, userDisplayName:getUserDisplayName(), actor:getUserDisplayName() });
+  });
+
+  function clearForm(){
+    document.getElementById("fld-name").value="";
+    document.getElementById("fld-triage").value="";
+    document.getElementById("fld-doctor").value="";
+    document.getElementById("fld-comment").value="";
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  }
+
+  function showUndo(token,msg){
+    lastUndoToken=token;
+    const bar=document.getElementById("undoBar");
+    document.getElementById("undoMsg").textContent=msg;
+    document.getElementById("undoTimer").textContent="(10s)";
+    bar.style.display="flex";
+    if(undoCountdown) clearInterval(undoCountdown);
+    let t=10;
+    undoCountdown=setInterval(()=>{
+      t--; document.getElementById("undoTimer").textContent=`(${t}s)`;
+      if(t<=0){ hideUndo(); }
+    },1000);
+  }
+  function hideUndo(){
+    const bar=document.getElementById("undoBar");
+    bar.style.display="none";
+    if(undoCountdown) clearInterval(undoCountdown);
+    undoCountdown=null; lastUndoToken=null;
+  }
+  document.getElementById("undoLink").addEventListener("click", ()=>{
+    if(!lastUndoToken){ hideUndo(); return; }
+    google.script.run.withSuccessHandler(res=>{
+      hideUndo();
+      if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko atšaukti."); return; }
+      fetchAllAndRender();
+    }).undoAssign(lastUndoToken);
+  });
+
+  // ------- Context menu & Confirm -------
+  const ctxEl = document.getElementById('ctxMenu');
+  const confirmEl = document.getElementById('confirmPop');
+  function clampPos(x,y,box){
+    const w = box.offsetWidth || 220, h = box.offsetHeight || 70;
+    const maxX = window.innerWidth - w - 8;
+    const maxY = window.innerHeight - h - 8;
+    return { x: Math.max(8, Math.min(x, maxX)), y: Math.max(8, Math.min(y, maxY)) };
+  }
+  function showCtxMenu(bed, x, y){
+    ctxTargetBed = bed; ctxX = x; ctxY = y;
+    hideConfirm();
+    ctxEl.style.display='block';
+    const p = clampPos(x, y, ctxEl);
+    ctxEl.style.left = p.x+'px'; ctxEl.style.top = p.y+'px';
+  }
+  function hideCtxMenu(){ ctxEl.style.display='none'; ctxTargetBed=null; }
+  function showConfirm(bed, x, y){
+    confirmTargetBed = bed;
+    confirmEl.style.display='block';
+    const p = clampPos(x, y, confirmEl);
+    confirmEl.style.left = p.x+'px'; confirmEl.style.top = p.y+'px';
+  }
+  function hideConfirm(){ confirmEl.style.display='none'; confirmTargetBed=null; }
+
+  document.getElementById('ctxDischarge').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if(!ctxTargetBed){ hideCtxMenu(); return; }
+    const bed = ctxTargetBed;
+    hideCtxMenu();
+    setTimeout(()=>{ showConfirm(bed, ctxX, ctxY); }, 0);
+  });
+  document.getElementById('confirmYes').addEventListener('click', ()=>{
+    const bed = confirmTargetBed; hideConfirm();
+    if(!bed) return;
+    google.script.run.withSuccessHandler(res=>{
+      if(!res || !res.ok){ alert((res && res.msg) ? res.msg : "Nepavyko išrašyti."); return; }
+      showUndo(res.undoToken, res.msg || "Pacientas išrašytas. ");
+      fetchAllAndRender();
+    }).dischargePatient({ bedLabel: bed, reason: "", userDisplayName:getUserDisplayName() });
+  });
+  document.getElementById('confirmNo').addEventListener('click', ()=>{ hideConfirm(); });
+
+  document.addEventListener('click', (e)=>{
+    if (e.target.closest('#ctxMenu')) return;
+    if (!e.target.closest('#confirmPop')) hideConfirm();
+    hideCtxMenu();
+  });
+  window.addEventListener('scroll', ()=>{ hideCtxMenu(); hideConfirm(); }, true);
+  window.addEventListener('resize', ()=>{ hideCtxMenu(); hideConfirm(); });
+
+  function sidebarInit(){ fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
+  function sidebarGetAll(){}
+  sidebarInit();
+</script>
+</body>
+</html>
