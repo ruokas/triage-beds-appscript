@@ -276,6 +276,17 @@ function getLiveZoneData(userName) {
   const me = _getUserTag(userName);
   const cache = CacheService.getDocumentCache();
 
+  // Visi rezervacijų raktai (vienkartinis užklausimas į Cache)
+  const allBedLabels = Array.from(new Set(Object.values(ZONOS).flat()));
+  const reservationKeys = allBedLabels.map(label => _resKey(label));
+  const reservationOwners = (cache && typeof cache.getAll === 'function')
+    ? (cache.getAll(reservationKeys) || {})
+    : {};
+  const reservationOwnersByLabel = allBedLabels.reduce((acc, label) => {
+    acc[label] = reservationOwners[_resKey(label)];
+    return acc;
+  }, {});
+
   // Surenkam pacientus pagal lovą (Salė + AMB)
   const patientByBed = {};
 
@@ -310,7 +321,7 @@ function getLiveZoneData(userName) {
   Object.keys(ZONOS).forEach(z => {
     bedsPayload[z] = {
       beds: ZONOS[z].map(label => {
-        const holder = cache.get(_resKey(label));
+        const holder = reservationOwnersByLabel[label];
         const patient = patientByBed[label] || '';
         return {
           label,
