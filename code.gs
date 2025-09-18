@@ -1,585 +1,210 @@
-/**
- * ED Dashboard - Apps Script backend (final)
- * - Logs to "VEIKSMŲ ŽURNALAS" (TimeISO | User | Action | Summary | From | To | Bed | Patient | Doctor | Triage | Status | Comment)
- * - Doctors from PACIENTŲ SKIRSTYMAS!B2:I2
- * - Ambulatorija: K=Doctor, L=Triage, M=Patient, N=Comment (rows 2..16 => AMB1..AMB15)
- * - Nurses from LENTA: IT A2+A3; Z1 A4:A9; Z2 A10:A17; Z3 A18:A26; Z4 A27:A35; Z5 A36:A40; Amb J2 (merged J2:J16)
- * - Zones: IT, 1..5, Ambulatorija
- * - LockService on all writes and reservations
- * - Undo support
- * - Robust bed lookup
- */
+/** ===================== CONFIG ===================== **/
+const SHEET_LENTA = 'LENTA';
 
-// -------- CONFIG --------
-const SH_LENTA     = 'LENTA';
-const SH_LOG       = 'VEIKSMŲ ŽURNALAS';
-const SH_PACIENTU  = 'PACIENTŲ SKIRSTYMAS';
-
-const STATUS_TEXT = 'Laukia apžiūros';
-
-const BOARD_COLUMNS = {
-  BED:    1,  // A: bed label (IT1, 1, P1, S4, 121A, ...)
-  DOCTOR: 2,  // B
-  TRIAGE: 5,  // E
-  STATUS: 7,  // G
-  COMMENT: 8  // H
-};
-const PATIENT_COL = 3; // C (patient) on hall board
-
-const AMB_COLS = { // on LENTA
-  DOCTOR:  11, // K
-  TRIAGE:  12, // L
-  PATIENT: 13, // M
-  COMMENT: 14  // N
+// Pagrindinės LENTA stulpelių kolonos
+const COLS = {
+  bed:     'C',    // Lova (pagal šį stulpelį randame eilutę)
+  doctor:  'D',    // Gydytojas
+  triage:  'E',    // Triažas (1–5)
+  patient: 'F',    // Pacientas (užimtumui)
+  status:  'G',    // Automatiškai: "Laukia apžiūros"
+  comment: 'H'     // Komentaras
 };
 
-const ZONE_LAYOUT = {
-  'Zona IT': ['IT1', 'IT2'],
-  'Zona 1':  ['1','2','3','P1','P2','P3'],
-  'Zona 2':  ['4','5','6','P4','P5','P6','S4','S5','S6'],
-  'Zona 3':  ['7','8','9','P7','P8','P9','S7','S8','S9'],
-  'Zona 4':  ['10','11','12','P10','P11','P12','S10','S11','S12'],
-  'Zona 5':  ['13','14','15','16','17','121A','121B','IZO'],
-  'Ambulatorija': Array.from({length:15}, (_,i)=>`AMB${i+1}`)
+// Ambulatorijos kolonos (K/L/M/N), eilutės 2..16
+const AMB = {
+  doctor:  'K',   // gydytojas
+  triage:  'L',   // kategorija (triažas)
+  patient: 'M',   // pacientas
+  comment: 'N',   // komentaras
+  firstRow: 2,
+  lastRow: 16, // => AMB1..AMB15
 };
 
-// -------- MENU --------
+// Gydytojų sąrašas iš "PACIENTŲ SKIRSTYMAS" (viena eilutė)
+const DOCTORS_SHEET = 'PACIENTŲ SKIRSTYMAS';
+const DOCTORS_RANGE = 'B2:I2';
+
+// Rezervacijos TTL (sek.)
+const RES_TTL_SEC = 5 * 60;
+// UNDO saugojimas (sek.) – laikysime iki 10 min
+const UNDO_TTL_SEC = 10 * 60;
+
+// Veiksmų žurnalas
+const LOG_SHEET = 'VEIKSMŲ ŽURNALAS';
+const LOG_HEADERS = ['TimeISO','User','Action','Summary','From','To','Bed','Patient','Doctor','Triage','Status','Comment'];
+
+/** Zonos (įskaitant Ambulatoriją) */
+const AMB_BEDS = Array.from({length: (AMB.lastRow - AMB.firstRow + 1)}, (_,i)=>`AMB${i+1}`);
+const ZONOS = {
+  "Zona IT": ["IT1","IT2"],
+  "Zona 1":  ["1","2","3","P1","P2","P3"],
+  "Zona 2":  ["4","5","6","P4","P5","P6","S4","S5","S6"],
+  "Zona 3":  ["7","8","9","P7","P8","P9","S7","S8","S9"],
+  "Zona 4":  ["10","11","12","P10","P11","P12","S10","S11","S12"],
+  "Zona 5":  ["13","14","15","16","17","121A","121B","IZO"],
+  "Ambulatorija": AMB_BEDS
+};
+// Slaugytojų skaitymas iš lapo LENTA konkrečiose vietose.
+// - Zona IT: A2 + A3 (abi sujungiamos " / " jei abi užpildytos)
+// - Zona 1: A4–A9 (merged)  -> imame A4
+// - Zona 2: A10–A17 (merged) -> A10
+// - Zona 3: A18–A26 (merged) -> A18
+// - Zona 4: A27–A35 (merged) -> A27
+// - Zona 5: A36–A40 (merged) -> A36
+// - Ambulatorija: J2 (merged per J2:J16)
+function getNursesFromLenta_() {
+  const sh = _sheet(SHEET_LENTA);
+  const out = {};
+  if (!sh) return out;
+
+  const gv = (a1) => String(sh.getRange(a1).getDisplayValue() || "").trim();
+
+  // Zona IT – sujungiam A2 ir A3, jei abu yra
+  const it1 = gv("A2");
+  const it2 = gv("A3");
+  const it = [it1, it2].filter(Boolean).join(" / ");
+  out["Zona IT"] = it || "Nenurodyta";
+
+  // Merged zonos – imame viršutinį kairį langelį
+  out["Zona 1"] = gv("A4")  || "Nenurodyta";   // A4–A9
+  out["Zona 2"] = gv("A10") || "Nenurodyta";   // A10–A17
+  out["Zona 3"] = gv("A18") || "Nenurodyta";   // A18–A26
+  out["Zona 4"] = gv("A27") || "Nenurodyta";   // A27–A35
+  out["Zona 5"] = gv("A36") || "Nenurodyta";   // A36–A40
+
+  // Ambulatorija – J2 (J2:J16 gali būti sujungtas)
+  out["Ambulatorija"] = gv("J2") || "Nenurodyta";
+
+  return out;
+}
+
+
+/** ===================== MENU / SIDEBAR ===================== **/
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu('ED valdymas')
-    .addItem('Atidaryti šoninę juostą', 'showSidebar')
+    .createMenu('SMPS TRIAŽO LANGAS')
+    .addItem('Atidaryti langą', 'rodytiLovuSkydeli')
     .addToUi();
 }
 
-function showSidebar() {
-  const html = HtmlService.createHtmlOutputFromFile('triageinfosidebar')
-    .setTitle('ED lenta')
-    .setWidth(420);
+function rodytiLovuSkydeli() {
+  const html = HtmlService.createTemplateFromFile('triagesidebar')
+    .evaluate()
+    .setTitle('Lovų zonos');
   SpreadsheetApp.getUi().showSidebar(html);
 }
+function setUsername(name){ PropertiesService.getUserProperties().setProperty("username", name); }
+function getUsername(){ return PropertiesService.getUserProperties().getProperty("username"); }
+function getCurrentUserName(){ return getUsername() || "Nenurodytas"; }
 
-function showHelpDialog() {
-  SpreadsheetApp.getUi().alert('Pagalba', 'Trumpas aprašas rodomas šoninėje juostoje.', SpreadsheetApp.ButtonSet.OK);
+function logArrival(timestampSheet, row) {
+  const user = getCurrentUserName();
+  // ... jūsų kodas
+  timestampSheet.appendRow([
+    patientID, doctor, emergencyCategory, formattedTime, "", "", getWeekNumber(now),
+    now.toLocaleString("default",{month:"long"}), now.getHours(), now.toLocaleString("default",{weekday:"long"}), user
+  ]);
 }
 
-// -------- USERNAME (actor) --------
-function getUsername() {
-  return PropertiesService.getUserProperties().getProperty('ED_USERNAME') || '';
+
+
+/** ===================== HELPERS ===================== **/
+function _ss() { return SpreadsheetApp.getActiveSpreadsheet(); }
+function _sheet(name) { return _ss().getSheetByName(name); }
+function _colA1ToIndex(a1) {
+  const s = String(a1).toUpperCase();
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+  return n;
 }
-function setUsername(name) {
-  PropertiesService.getUserProperties().setProperty('ED_USERNAME', (name || '').trim());
-  return { ok: true };
+function _findRowByValue(sheet, colA1, value) {
+  const col = _colA1ToIndex(colA1);
+  const last = sheet.getLastRow();
+  if (last < 1) return -1;
+  const rng = sheet.getRange(1, col, last, 1);
+  const tf = rng.createTextFinder(String(value)).matchEntireCell(true);
+  const cell = tf.findNext();
+  return cell ? cell.getRow() : -1;
 }
-function _resolveUser_(provided) {
-  const v = String(provided || '').trim();
-  if (v) return v;                        // 1) explicit name from client
-  const prop = getUsername();             // 2) UserProperties
-  if (prop) return prop;
+
+function _getUserTag() {
+  // 1) pirmiausia – vartotojo įvestas vardas
+  const uname = getUsername();
+  if (uname) return uname;
+
+  // 2) jei nėra – bandome emailą
   try {
-    const email = Session.getActiveUser().getEmail(); // 3) email
+    const email = Session.getActiveUser().getEmail();
     if (email) return email;
-  } catch(e) {}
-  return 'anon:' + Session.getTemporaryActiveUserKey(); // 4) fallback
+  } catch (e) {}
+
+  // 3) fallback – anon raktas
+  return 'anon:' + Session.getTemporaryActiveUserKey();
 }
 
-// -------- DOCTORS --------
-function getDoctors() {
-  const sh = SpreadsheetApp.getActive().getSheetByName(SH_PACIENTU);
-  if (!sh) return [];
-  const vals = sh.getRange(2, 2, 1, 8).getValues()[0]; // B2:I2
-  return vals.filter(v => v && String(v).trim()).map(v => String(v).trim());
+function _resKey(label) { return 'RES_BED_' + String(label); }
+
+// AMB pagalba
+function _isAmb(label){ return /^AMB(\d+)$/.test(String(label)); }
+function _ambRow(label){
+  const m = String(label).match(/^AMB(\d+)$/);
+  if (!m) return -1;
+  const n = Number(m[1]);
+  return AMB.firstRow + (n - 1); // AMB1 -> 2, ..., AMB15 -> 16
 }
 
-// -------- NURSES --------
-function getNursesFromBoard_Exact() {
-  const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-  if (!sh) return {};
-  function joinBlock(a1) {
-    const range = sh.getRange(a1);
-    const values = range.getValues().flat().map(v => String(v || '').trim()).filter(Boolean);
-    return values.join(' ');
-  }
-  const nurses = {};
-  const a2 = String(sh.getRange('A2').getValue() || '').trim();
-  const a3 = String(sh.getRange('A3').getValue() || '').trim();
-  nurses['Zona IT'] = [a2, a3].filter(Boolean).join(' ');
-  nurses['Zona 1'] = joinBlock('A4:A9');
-  nurses['Zona 2'] = joinBlock('A10:A17');
-  nurses['Zona 3'] = joinBlock('A18:A26');
-  nurses['Zona 4'] = joinBlock('A27:A35');
-  nurses['Zona 5'] = joinBlock('A36:A40');
-  nurses['Ambulatorija'] = String(sh.getRange('J2').getDisplayValue() || '').trim(); // merged J2:J16
-  return nurses;
-}
-
-// -------- SNAPSHOT --------
-function buildZonesPayload_(actor) {
-  const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-  if (!sh) throw new Error('Nerastas lapas LENTA.');
-
-  const nurses = getNursesFromBoard_Exact();
-  const occupied = getOccupiedMap_(sh);
-  const reservations = getReservationMap_();
-
-  const zones = {};
-  Object.keys(ZONE_LAYOUT).forEach(z => zones[z] = { name: z, beds: [] });
-
-  for (const [zone, labels] of Object.entries(ZONE_LAYOUT)) {
-    for (const label of labels) {
-      const occ = occupied[label] || null;
-      const res = reservations[label] || null;
-      const reservedByMe    = !!(res && actor && res.actor === actor);
-      const reservedByOther = !!(res && (!actor || res.actor !== actor));
-
-      zones[zone].beds.push({
-        label,
-        occupied: !!occ,
-        patient: occ ? occ.patient : '',
-        reservedByMe,
-        reservedByOther
-      });
-    }
-  }
-  return { beds: zones, nurses };
-}
-
-function getOccupiedMap_(sh) {
-  const map = {};
-  const lastRow = sh.getLastRow();
-  if (lastRow >= 1) {
-    const labels  = sh.getRange(1, BOARD_COLUMNS.BED, lastRow, 1).getValues();
-    const doctors = sh.getRange(1, BOARD_COLUMNS.DOCTOR, lastRow, 1).getValues();
-    const triages = sh.getRange(1, BOARD_COLUMNS.TRIAGE, lastRow, 1).getValues();
-    const statuses= sh.getRange(1, BOARD_COLUMNS.STATUS, lastRow, 1).getValues();
-    const comments= sh.getRange(1, BOARD_COLUMNS.COMMENT, lastRow, 1).getValues();
-    const patients= sh.getRange(1, PATIENT_COL,       lastRow, 1).getValues();
-    for (let r = 1; r <= lastRow; r++) {
-      const label = String(labels[r-1][0] || '').trim();
-      if (!label || label.startsWith('AMB')) continue;
-      const patient = String(patients[r-1][0] || '').trim();
-      const occupied = !!(patient ||
-                          String(doctors[r-1][0]||'').trim() ||
-                          String(triages[r-1][0]||'').trim() ||
-                          String(statuses[r-1][0]||'').trim() ||
-                          String(comments[r-1][0]||'').trim());
-      if (occupied) {
-        map[label] = {
-          row: r,
-          patient,
-          doctor:  String(doctors[r-1][0]||'').trim(),
-          triage:  String(triages[r-1][0]||'').trim(),
-          status:  String(statuses[r-1][0]||'').trim(),
-          comment: String(comments[r-1][0]||'').trim()
-        };
-      }
-    }
-  }
-  // AMB rows 2..16
-  for (let i = 1; i <= 15; i++) {
-    const label = `AMB${i}`;
-    const row = 1 + i;
-    const patient = String(sh.getRange(row, AMB_COLS.PATIENT).getValue() || '').trim();
-    const doctor  = String(sh.getRange(row, AMB_COLS.DOCTOR).getValue()  || '').trim();
-    const triage  = String(sh.getRange(row, AMB_COLS.TRIAGE).getValue()  || '').trim();
-    const comment = String(sh.getRange(row, AMB_COLS.COMMENT).getValue() || '').trim();
-    if (patient || doctor || triage || comment) {
-      map[label] = { row, patient, doctor, triage, status: '', comment };
-    }
-  }
-  return map;
-}
-
-// -------- RESERVATIONS --------
-const CACHE_PREFIX = 'ED_RES_';
-const RES_TTL_SEC  = 180; // 3 min
-
-function reserveBed(payload) {
-  const { actor, bedLabel } = normalizePayload_(payload);
-  if (!bedLabel) return { ok:false, msg:'Nenurodyta lova' };
-  const lock = LockService.getDocumentLock();
-  lock.waitLock(30000);
-  try {
-    const cache = CacheService.getDocumentCache();
-    const key = CACHE_PREFIX + bedLabel;
-    const existing = readJson(cache.get(key));
-    if (existing && existing.actor && existing.actor !== actor) {
-      return { ok:false, msg:'Lova jau rezervuota kito naudotojo.' };
-    }
-    cache.put(key, JSON.stringify({ actor, ts: Date.now() }), RES_TTL_SEC);
-    return { ok:true };
-  } finally {
-    lock.releaseLock();
-  }
-}
-function keepAliveReservation(payload) {
-  const { actor, bedLabel } = normalizePayload_(payload);
-  if (!bedLabel) return { ok:false };
-  const cache = CacheService.getDocumentCache();
-  const key = CACHE_PREFIX + bedLabel;
-  const existing = readJson(cache.get(key));
-  if (!existing || existing.actor !== actor) return { ok:false };
-  cache.put(key, JSON.stringify({ actor, ts: Date.now() }), RES_TTL_SEC);
-  return { ok:true };
-}
-function releaseReservation(payload) {
-  const { actor, bedLabel } = normalizePayload_(payload);
-  if (!bedLabel) return { ok:true };
-  const lock = LockService.getDocumentLock();
-  lock.waitLock(30000);
-  try {
-    const cache = CacheService.getDocumentCache();
-    const key = CACHE_PREFIX + bedLabel;
-    const existing = readJson(cache.get(key));
-    if (existing && existing.actor === actor) cache.remove(key);
-  } finally {
-    lock.releaseLock();
-  }
-  return { ok:true };
-}
-function getReservationMap_() {
-  const cache = CacheService.getDocumentCache();
-  const map = {};
-  Object.values(ZONE_LAYOUT).flat().forEach(label => {
-    const raw = cache.get(CACHE_PREFIX + label);
-    const obj = readJson(raw);
-    if (obj && obj.actor) map[label] = obj;
-  });
-  return map;
-}
-
-// -------- ACTIONS (assign/move/swap/discharge) + UNDO --------
-function assignBed(payload) {
-  const p = normalizePayload_(payload);
-  if (!p.bedLabel || !p.patientName || !p.doctor) return { ok:false, msg:'Trūksta laukų' };
-
-  const lock = LockService.getDocumentLock();
-  lock.waitLock(30000);
-  const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-  if (!sh) return { ok:false, msg:'Nerastas LENTA' };
-
-  try {
-    const undo = {};
-    if (p.bedLabel.startsWith('AMB')) {
-      const idx = Number(p.bedLabel.replace('AMB',''));
-      const row = 1 + idx;
-      undo.type = 'assignAMB';
-      undo.row  = row;
-      undo.before = sh.getRange(row, AMB_COLS.DOCTOR, 1, 4).getValues()[0];
-      sh.getRange(row, AMB_COLS.DOCTOR).setValue(p.doctor);
-      sh.getRange(row, AMB_COLS.TRIAGE).setValue(p.triage || '');
-      sh.getRange(row, AMB_COLS.PATIENT).setValue(p.patientName);
-      sh.getRange(row, AMB_COLS.COMMENT).setValue(p.comment || '');
-    } else {
-      const row = _rowByBedFast_(sh, p.bedLabel);
-      if (!row) {
-        const all = sh.getRange(1, BOARD_COLUMNS.BED, Math.max(1, sh.getLastRow()), 1).getValues().map(v=>String(v[0]||'').trim()).filter(Boolean).slice(0,200);
-        return { ok:false, msg:`Nerasta lova lentoje: "${p.bedLabel}". Patikrinkite A stulpelį. Pvz.: ${all.join(', ')}` };
-      }
-      const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-      undo.type = 'assignHALL';
-      undo.row  = row;
-      undo.before = sh.getRange(row, BOARD_COLUMNS.DOCTOR, 1, width).getValues()[0];
-      sh.getRange(row, BOARD_COLUMNS.DOCTOR).setValue(p.doctor);
-      sh.getRange(row, BOARD_COLUMNS.TRIAGE).setValue(p.triage);
-      sh.getRange(row, BOARD_COLUMNS.STATUS).setValue(STATUS_TEXT);
-      sh.getRange(row, BOARD_COLUMNS.COMMENT).setValue(p.comment || '');
-      sh.getRange(row, PATIENT_COL).setValue(p.patientName);
-    }
-    const token = saveUndo_(undo);
-    _logAction_({
-      action: 'ASSIGN',
-      summary: `Įrašyta į ${p.bedLabel}: ${p.patientName} (${p.doctor}${p.triage?`, T${p.triage}`:''})`,
-      bed: p.bedLabel, patient: p.patientName, doctor: p.doctor, triage: p.triage,
-      status: STATUS_TEXT, comment: p.comment || '',
-      userDisplayName: p.userDisplayName
-    });
-    releaseReservation({ actor:p.actor, bedLabel:p.bedLabel });
-    return { ok:true, undoToken: token };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function movePatient(payload) {
-  const p = normalizePayload_(payload);
-  if (!p.fromBed || !p.toBed) return { ok:false, msg:'Trūksta laukų' };
-
-  const lock = LockService.getDocumentLock();
-  lock.waitLock(30000);
-  try {
-    const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-    if (!sh) return { ok:false, msg:'Nerastas LENTA' };
-
-    const snapFrom = readBedSnapshot_(sh, p.fromBed);
-    const snapTo   = readBedSnapshot_(sh, p.toBed);
-    if (!snapFrom || !snapFrom.occupied) return { ok:false, msg:'Šaltinio lova tuščia' };
-    if (snapTo && snapTo.occupied)       return { ok:false, msg:'Tikslinė lova užimta (naudokite „Swap“).' };
-
-    const undo = {
-      type: 'move',
-      from: { bed:p.fromBed, row:snapFrom.row, before:snapFrom.before },
-      to:   { bed:p.toBed,   row: snapTo ? snapTo.row : guessRowFromLabel_(p.toBed),
-              before: snapTo ? snapTo.before : emptyBlockForBed_(p.toBed) }
-    };
-    writeSnapshotToBed_(sh, p.toBed, snapFrom);
-    clearBed_(sh, p.fromBed);
-
-    const token = saveUndo_(undo);
-    _logAction_({
-      action: 'MOVE',
-      summary: `Perkelta: ${p.fromBed} → ${p.toBed} (${snapFrom.patient || ''})`,
-      from: p.fromBed, to: p.toBed, bed: p.toBed, patient: snapFrom.patient || '',
-      userDisplayName: p.userDisplayName
-    });
-    return { ok:true, undoToken: token };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function swapBeds(payload) {
-  const p = normalizePayload_(payload);
-  if (!p.bedA || !p.bedB) return { ok:false, msg:'Trūksta laukų' };
-
-  const lock = LockService.getDocumentLock();
-  lock.waitLock(30000);
-  try {
-    const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-    if (!sh) return { ok:false, msg:'Nerastas LENTA' };
-
-    const snapA = readBedSnapshot_(sh, p.bedA);
-    const snapB = readBedSnapshot_(sh, p.bedB);
-    if (!snapA || !snapA.occupied) return { ok:false, msg:'Pirmoji lova tuščia' };
-    if (!snapB || !snapB.occupied) return { ok:false, msg:'Antroji lova tuščia' };
-
-    const undo = { type:'swap',
-      A:{ bed:p.bedA, row:snapA.row, before:snapA.before },
-      B:{ bed:p.bedB, row:snapB.row, before:snapB.before }
-    };
-    writeSnapshotToBed_(sh, p.bedA, snapB);
-    writeSnapshotToBed_(sh, p.bedB, snapA);
-
-    const token = saveUndo_(undo);
-    _logAction_({
-      action: 'SWAP',
-      summary: `Sukeista: ${p.bedA} ↔ ${p.bedB}`,
-      from: p.bedA, to: p.bedB, bed: `${p.bedA}↔${p.bedB}`,
-      userDisplayName: p.userDisplayName
-    });
-    return { ok:true, undoToken: token };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function dischargePatient(payload) {
-  const p = normalizePayload_(payload);
-  if (!p.bedLabel) return { ok:false, msg:'Nenurodyta lova' };
-
-  const lock = LockService.getDocumentLock();
-  lock.waitLock(30000);
-  try {
-    const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-    if (!sh) return { ok:false, msg:'Nerastas LENTA' };
-
-    const snap = readBedSnapshot_(sh, p.bedLabel);
-    if (!snap || !snap.occupied) return { ok:false, msg:'Lova jau tuščia' };
-
-    const undo = { type:'discharge', bed:p.bedLabel, row:snap.row, before:snap.before };
-    clearBed_(sh, p.bedLabel);
-
-    const token = saveUndo_(undo);
-    _logAction_({
-      action: 'DISCHARGE',
-      summary: `Išrašyta iš ${p.bedLabel}: ${snap.patient || ''}`,
-      bed: p.bedLabel, patient: snap.patient || '',
-      userDisplayName: p.userDisplayName
-    });
-    return { ok:true, undoToken: token, msg:'Pacientas išrašytas.' };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-// -------- UNDO STORAGE --------
-function saveUndo_(obj) {
-  const token = 'U' + Utilities.getUuid();
-  PropertiesService.getDocumentProperties().setProperty(token, JSON.stringify(obj));
+// UNDO saugykla
+function _storeUndo_(payloadObj) {
+  const token = Utilities.getUuid();
+  CacheService.getDocumentCache().put('UNDO_'+token, JSON.stringify(payloadObj), UNDO_TTL_SEC);
   return token;
 }
-function undoAssign(token) {
-  if (!token) return { ok:false };
-  const props = PropertiesService.getDocumentProperties();
-  const raw = props.getProperty(token);
-  if (!raw) return { ok:false, msg:'Nebėra ką atšaukti.' };
-  props.deleteProperty(token);
-
-  const undo = JSON.parse(raw);
-  const sh = SpreadsheetApp.getActive().getSheetByName(SH_LENTA);
-  if (!sh) return { ok:false };
-
-  switch (undo.type) {
-    case 'assignAMB':
-      sh.getRange(undo.row, AMB_COLS.DOCTOR, 1, 4).setValues([undo.before]);
-      break;
-    case 'assignHALL': {
-      const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-      sh.getRange(undo.row, BOARD_COLUMNS.DOCTOR, 1, width).setValues([undo.before]);
-      break;
-    }
-    case 'move':
-      _applyBlock_(sh, undo.to);
-      _applyBlock_(sh, undo.from);
-      break;
-    case 'swap':
-      _applyBlock_(sh, undo.A);
-      _applyBlock_(sh, undo.B);
-      break;
-    case 'discharge':
-      _applyBlock_(sh, undo);
-      break;
-    default:
-      return { ok:false };
-  }
-  return { ok:true };
+function _readUndo_(token) {
+  const raw = CacheService.getDocumentCache().get('UNDO_'+token);
+  return raw ? JSON.parse(raw) : null;
 }
-function _applyBlock_(sh, blk) {
-  if (!blk || !blk.row) return;
-  if (blk.before && blk.before.length) {
-    if (blk.bed && blk.bed.startsWith('AMB')) {
-      sh.getRange(blk.row, AMB_COLS.DOCTOR, 1, 4).setValues([blk.before]);
-    } else {
-      const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-      sh.getRange(blk.row, BOARD_COLUMNS.DOCTOR, 1, width).setValues([blk.before]);
-    }
+function _clearUndo_(token) {
+  CacheService.getDocumentCache().remove('UNDO_'+token);
+}
+
+/** Vienos eilutės rašymas į kelis stulpelius. */
+function _writeRowPairs(sh, row, pairs) {
+  const items = pairs
+    .map(p => ({ idx: _colA1ToIndex(p.colA1), value: p.value }))
+    .sort((a, b) => a.idx - b.idx);
+  if (!items.length) return;
+
+  let contiguous = true;
+  for (let i = 1; i < items.length; i++) {
+    if (items[i].idx !== items[0].idx + i) { contiguous = false; break; }
+  }
+
+  if (contiguous) {
+    const startCol = items[0].idx;
+    const valuesRow = items.map(it => it.value);
+    sh.getRange(row, startCol, 1, items.length).setValues([valuesRow]);
   } else {
-    clearBed_(sh, blk.bed);
+    items.forEach(it => sh.getRange(row, it.idx).setValue(it.value));
   }
 }
 
-// -------- ROW/SNAPSHOT HELPERS --------
-function normalizeLabel_(s) {
-  return String(s || '')
-    .replace(/\u2019/g, "'")
-    .replace(/\s+/g, ' ')
-    .replace(/\u00A0/g, ' ')
-    .trim()
-    .toUpperCase();
-}
-function _rowByBedFast_(sh, bedLabel) {
-  if (!bedLabel) return 0;
-  const want = normalizeLabel_(bedLabel);
-  const lastRow = sh.getLastRow();
-  if (lastRow < 1) return 0;
-
-  const vals = sh.getRange(1, BOARD_COLUMNS.BED, lastRow, 1).getValues();
-  for (let r = 1; r <= lastRow; r++) {
-    const got = normalizeLabel_(vals[r-1][0]);
-    if (got && got === want) return r;
-  }
-  try {
-    const tf = sh.createTextFinder(bedLabel)
-      .matchCase(false).matchEntireCell(true).useRegularExpression(false)
-      .matchFormulaText(false).ignoreDiacritics(true);
-    const hit = tf.findNext();
-    if (hit && hit.getColumn() === BOARD_COLUMNS.BED) return hit.getRow();
-  } catch(e) {}
-  try {
-    const esc = want.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const tf2 = sh.createTextFinder(`^${esc}$`)
-      .useRegularExpression(true).matchCase(false)
-      .matchFormulaText(false).ignoreDiacritics(true);
-    const hit2 = tf2.findNext();
-    if (hit2 && hit2.getColumn() === BOARD_COLUMNS.BED) return hit2.getRow();
-  } catch(e) {}
-  return 0;
-}
-function guessRowFromLabel_(bedLabel) {
-  if (bedLabel.startsWith('AMB')) {
-    const idx = Number(bedLabel.replace('AMB',''));
-    return 1 + idx;
-  }
-  return _rowByBedFast_(SpreadsheetApp.getActive().getSheetByName(SH_LENTA), bedLabel);
-}
-function emptyBlockForBed_(bedLabel) {
-  if (bedLabel.startsWith('AMB')) {
-    return ['', '', '', '']; // K..N
-  } else {
-    const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-    return new Array(width).fill('');
-  }
-}
-function readBedSnapshot_(sh, bedLabel) {
-  if (bedLabel.startsWith('AMB')) {
-    const row = 1 + Number(bedLabel.replace('AMB',''));
-    const before = sh.getRange(row, AMB_COLS.DOCTOR, 1, 4).getValues()[0];
-    const patient = String(sh.getRange(row, AMB_COLS.PATIENT).getValue() || '').trim();
-    const occupied = before.some(v => String(v||'').trim()) || !!patient;
-    return { bed:bedLabel, row, occupied: !!occupied, before, patient };
-  } else {
-    const row = _rowByBedFast_(sh, bedLabel);
-    if (!row) return null;
-    const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-    const before = sh.getRange(row, BOARD_COLUMNS.DOCTOR, 1, width).getValues()[0];
-    const patient = String(sh.getRange(row, PATIENT_COL).getValue() || '').trim();
-    const occupied = patient || before.some(v => String(v||'').trim());
-    return { bed:bedLabel, row, occupied: !!occupied, before, patient };
-  }
-}
-function writeSnapshotToBed_(sh, bedLabel, snap) {
-  if (bedLabel.startsWith('AMB')) {
-    const row = 1 + Number(bedLabel.replace('AMB',''));
-    if (snap && snap.before) {
-      sh.getRange(row, AMB_COLS.DOCTOR, 1, 4).setValues([snap.before]);
-    } else {
-      sh.getRange(row, AMB_COLS.DOCTOR, 1, 4).clearContent();
-    }
-  } else {
-    const row = _rowByBedFast_(sh, bedLabel);
-    if (!row) return;
-    const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-    if (snap && snap.before) {
-      sh.getRange(row, BOARD_COLUMNS.DOCTOR, 1, width).setValues([snap.before]);
-      if (typeof snap.patient !== 'undefined') {
-        sh.getRange(row, PATIENT_COL).setValue(snap.patient || '');
-      }
-    } else {
-      sh.getRange(row, BOARD_COLUMNS.DOCTOR, 1, width).clearContent();
-      sh.getRange(row, PATIENT_COL).clearContent();
-    }
-  }
-}
-function clearBed_(sh, bedLabel) {
-  if (bedLabel.startsWith('AMB')) {
-    const row = 1 + Number(bedLabel.replace('AMB',''));
-    sh.getRange(row, AMB_COLS.DOCTOR, 1, 4).clearContent();
-  } else {
-    const row = _rowByBedFast_(sh, bedLabel);
-    if (!row) return;
-    const width = BOARD_COLUMNS.COMMENT - BOARD_COLUMNS.DOCTOR + 1;
-    sh.getRange(row, BOARD_COLUMNS.DOCTOR, 1, width).clearContent();
-    sh.getRange(row, PATIENT_COL).clearContent();
-  }
-}
-
-// -------- LOGGING --------
-function ensureLog_() {
-  const ss = SpreadsheetApp.getActive();
-  let sh = ss.getSheetByName(SH_LOG);
+/** ===================== AUDIT LOG ===================== **/
+function _logSheet_() {
+  let sh = _sheet(LOG_SHEET);
   if (!sh) {
-    sh = ss.insertSheet(SH_LOG);
-    sh.appendRow(['TimeISO','User','Action','Summary','From','To','Bed','Patient','Doctor','Triage','Status','Comment']);
-  } else if (sh.getLastRow() === 0) {
-    sh.appendRow(['TimeISO','User','Action','Summary','From','To','Bed','Patient','Doctor','Triage','Status','Comment']);
+    sh = _ss().insertSheet(LOG_SHEET);
+    sh.getRange(1,1,1,LOG_HEADERS.length).setValues([LOG_HEADERS]);
+    sh.setFrozenRows(1);
   }
   return sh;
 }
 function _logAction_(o) {
   try {
-    const sh = ensureLog_();
+    const sh = _logSheet_();
     const row = [
-      new Date(), // store native Date (easier to format in Sheets)
-      _resolveUser_(o && (o.userDisplayName || o.user)),
+      new Date().toISOString(),
+      getCurrentUserName(),
       o.action || '',
       o.summary || '',
       o.from || '',
@@ -592,46 +217,616 @@ function _logAction_(o) {
       o.comment || ''
     ];
     sh.appendRow(row);
-  } catch(e) {
-    console.error('log error', e);
-  }
+    const last = sh.getLastRow();
+    if (last > 5000) sh.deleteRows(2, last - 5000);
+  } catch(e) {}
 }
-function getRecentActions(limit = 10) {
-  const sh = ensureLog_();
+
+/** ===================== DATA FOR SIDEBAR ===================== **/
+function sidebarGetAll() {
+  return {
+    zonesPayload: getLiveZoneData(),
+    doctors: getDoctorsList_(),
+    recent: _getRecentActions_(8),
+    now: new Date().toISOString()
+  };
+}
+function _getRecentActions_(limit) {
+  const sh = _sheet(LOG_SHEET);
+  if (!sh) return [];
   const last = sh.getLastRow();
   if (last < 2) return [];
-  const n = Math.min(limit, last - 1);
-  const vals = sh.getRange(last - n + 1, 1, n, 12).getValues();
-  return vals.map(r => ({
-    ts: r[0], actor: r[1], action: r[2], summary: r[3]
+  const n = Math.min(limit || 8, last - 1);
+  const start = last - n + 1;
+  const values = sh.getRange(start, 1, n, LOG_HEADERS.length).getValues();
+  return values.map(r => ({
+    ts: r[0], user: r[1], action: r[2], summary: r[3],
+    from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], status: r[10], comment: r[11]
   })).reverse();
 }
 
-// -------- SIDEBAR DATA --------
-function sidebarGetAll(payload) {
+/** Užimtumas (LENTA F; AMB M) ir slaugytojos, pac. vardas */
+function getLiveZoneData() {
+  const sh = _sheet(SHEET_LENTA);
+  const me = _getUserTag();
+  const cache = CacheService.getDocumentCache();
+
+  // Surenkam pacientus pagal lovą (Salė + AMB)
+  const patientByBed = {};
+
+  if (sh) {
+    // Salė: C=bed, F=patient
+    const bedCol = _colA1ToIndex(COLS.bed);
+    const patientCol = _colA1ToIndex(COLS.patient);
+    const last = sh.getLastRow();
+    if (last >= 2) {
+      const beds = sh.getRange(2, bedCol, last - 1, 1).getValues().flat();
+      const patients = sh.getRange(2, patientCol, last - 1, 1).getValues().flat();
+      for (let i = 0; i < beds.length; i++) {
+        const b = String(beds[i] || '').trim();
+        const p = String(patients[i] || '').trim();
+        if (b) patientByBed[b] = p; // gali būti ir tuščias
+      }
+    }
+    // AMB: AMB1..AMB15 → M=patient
+    const ambPIdx = _colA1ToIndex(AMB.patient);
+    const ambRows = AMB.lastRow - AMB.firstRow + 1;
+    if (ambRows > 0) {
+      const ambPats = sh.getRange(AMB.firstRow, ambPIdx, ambRows, 1).getValues().flat();
+      ambPats.forEach((val, i) => {
+        const label = `AMB${i+1}`;
+        patientByBed[label] = String(val || '').trim();
+      });
+    }
+  }
+
+  // Sukuriam payloadą su pacientu
+  const bedsPayload = {};
+  Object.keys(ZONOS).forEach(z => {
+    bedsPayload[z] = {
+      beds: ZONOS[z].map(label => {
+        const holder = cache.get(_resKey(label));
+        const patient = patientByBed[label] || '';
+        return {
+          label,
+          occupied: !!patient,
+          patient, // <— pridėta
+          reservedByMe: !!(holder && holder === me),
+          reservedByOther: !!(holder && holder !== me)
+        };
+      })
+    };
+  });
+
+  // Slaugytojų vardai iš LENTA
+  const nurseMap = getNursesFromLenta_();
+  const nurses = {};
+
+  // Užtikriname, kad visoms zonoms būtų reikšmė (jei kas tuščia – "Nenurodyta")
+  Object.keys(ZONOS).forEach(z => {
+    nurses[z] = nurseMap[z] || "Nenurodyta";
+  });
+  // Ambulatorija (jei UI ją rodo atskirai)
+  nurses["Ambulatorija"] = nurseMap["Ambulatorija"] || "Nenurodyta";
+
+  return { beds: bedsPayload, nurses };
+}
+
+
+/** Gydytojų sąrašas */
+function getDoctorsList_() {
+  const sh = _sheet(DOCTORS_SHEET);
+  if (!sh) return [];
+  const rng = sh.getRange(DOCTORS_RANGE).getValues(); // 1 x N
+  const vals = (rng[0] || []).map(v => String(v || '').trim()).filter(Boolean);
+  const seen = {};
+  const out = [];
+  vals.forEach(v => { if (!seen[v]) { seen[v] = true; out.push(v); } });
+  return out;
+}
+
+/** ===================== RESERVATIONS (su LockService) ===================== **/
+function reserveBed(bedLabel) {
+  if (!bedLabel) return { ok:false, msg:'Nenurodytas lovos žymuo.' };
+
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
   try {
-    const actor = (payload && payload.actor)
-      ? String(payload.actor).trim()
-      : getUsername() || Session.getActiveUser().getEmail();
-    const zonesPayload = buildZonesPayload_(actor);
-    const doctors = getDoctors();
-    const recent = getRecentActions(10);
-    return { zonesPayload, doctors, recent, now: new Date() };
-  } catch (e) {
-    console.error('sidebarGetAll error:', e);
-    return { zonesPayload: { beds: {}, nurses: {} }, doctors: [], recent: [], now: new Date(), error: String(e) };
+    const sh = _sheet(SHEET_LENTA);
+    if (sh) {
+      let occupied = false;
+      if (_isAmb(bedLabel)) {
+        const row = _ambRow(bedLabel);
+        const p = String(sh.getRange(row, _colA1ToIndex(AMB.patient)).getValue() || '').trim();
+        occupied = !!p;
+      } else {
+        const row = _findRowByValue(sh, COLS.bed, bedLabel);
+        if (row > 0) {
+          const p = String(sh.getRange(row, _colA1ToIndex(COLS.patient)).getValue() || '').trim();
+          occupied = !!p;
+        }
+      }
+      if (occupied) return { ok:false, msg:'Lova jau užimta.' };
+    }
+    const cache = CacheService.getDocumentCache();
+    const key = _resKey(bedLabel);
+    const holder = cache.get(key);
+    const me = _getUserTag();
+
+    if (holder && holder !== me) return { ok:false, msg:'Lova jau rezervuota kito naudotojo.' };
+
+    cache.put(key, me, RES_TTL_SEC);
+    return { ok:true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+function keepAliveReservation(bedLabel) {
+  if (!bedLabel) return;
+  const cache = CacheService.getDocumentCache();
+  const key = _resKey(bedLabel);
+  const holder = cache.get(key);
+  const me = _getUserTag();
+  if (holder && holder === me) cache.put(key, me, RES_TTL_SEC);
+}
+function releaseReservation(bedLabel) {
+  if (!bedLabel) return;
+  CacheService.getDocumentCache().remove(_resKey(bedLabel));
+}
+
+/** ===================== WRITE / UNDO / MOVE / SWAP / DISCHARGE ===================== **/
+
+function _normalizeTriage(t) {
+  if (t === null || t === undefined) return '';
+  const s = String(t).trim().toUpperCase();
+  if (!s) return '';
+  const map = { 'I':'1','II':'2','III':'3','IV':'4','V':'5' };
+  if (map[s]) return Number(map[s]);
+  const n = Number(s);
+  return (n>=1 && n<=5) ? n : '';
+}
+
+/**
+ * payload = { bedLabel, patientName, triage, doctor, comment }
+ * LENTA: rašo D..H (status="Laukia apžiūros")
+ * AMB:   rašo K..N (triažas neprivalomas)
+ */
+function assignBed(payload) {
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+
+  try {
+    const { bedLabel, patientName, triage, doctor, comment } = payload || {};
+    if (!bedLabel || !patientName || !doctor) {
+      return { ok:false, msg:'Trūksta laukų (lova, vardas, gydytojas).' };
+    }
+    const isAmb = _isAmb(bedLabel);
+
+    const cache = CacheService.getDocumentCache();
+    const key = _resKey(bedLabel);
+    const holder = cache.get(key);
+    const me = _getUserTag();
+    if (holder && holder !== me) return { ok:false, msg:'Lova rezervuota kito naudotojo.' };
+
+    const sh = _sheet(SHEET_LENTA);
+    if (!sh) return { ok:false, msg:'Nerastas lapas „LENTA“.' };
+
+    if (isAmb) {
+      const row = _ambRow(bedLabel);
+      if (row <= 0) return { ok:false, msg:'Nerasta AMB eilutė.' };
+      const existing = String(sh.getRange(row, _colA1ToIndex(AMB.patient)).getValue() || '').trim();
+      if (existing) return { ok:false, msg:'Lova jau užimta.' };
+
+      const triageOut = _normalizeTriage(triage);
+
+      // UNDO senos K..N
+      const kIdx = _colA1ToIndex(AMB.doctor);
+      const nIdx = _colA1ToIndex(AMB.comment);
+      const width = nIdx - kIdx + 1;
+      const oldVals = sh.getRange(row, kIdx, 1, width).getValues()[0];
+
+      // Rašom K/L/M/N
+      _writeRowPairs(sh, row, [
+        { colA1: AMB.doctor,  value: doctor },
+        { colA1: AMB.triage,  value: triageOut },
+        { colA1: AMB.patient, value: patientName },
+        { colA1: AMB.comment, value: comment || '' }
+      ]);
+
+      const undoToken = _storeUndo_({
+        type: 'assign',
+        sheet: SHEET_LENTA,
+        row,
+        startIdx: kIdx,
+        values: oldVals
+      });
+
+      _logAction_({
+        action: 'ASSIGN_AMB',
+        summary: `AMB ${bedLabel}: ${patientName}${triageOut?` (T${triageOut})`:''}, gyd. ${doctor}`,
+        bed: bedLabel, patient: patientName, doctor: doctor, triage: String(triageOut||''), comment: comment || ''
+      });
+
+      cache.remove(key);
+      return { ok:true, undoToken };
+    } else {
+      // LENTA
+      const row = _findRowByValue(sh, COLS.bed, bedLabel);
+      if (row <= 0) return { ok:false, msg:'Nerasta lovos eilutė LENTA lape.' };
+      const existing = String(sh.getRange(row, _colA1ToIndex(COLS.patient)).getValue() || '').trim();
+      if (existing) return { ok:false, msg:'Lova jau užimta.' };
+
+      const triageOut = _normalizeTriage(triage);
+      if (triageOut === '') return { ok:false, msg:'Pasirinkite triažo kategoriją (1–5).' };
+
+      // UNDO senos D..H
+      const dIdx = _colA1ToIndex(COLS.doctor);
+      const hIdx = _colA1ToIndex(COLS.comment);
+      const oldVals = sh.getRange(row, dIdx, 1, hIdx - dIdx + 1).getValues()[0];
+
+      // Rašom D..H (status visada "Laukia apžiūros")
+      _writeRowPairs(sh, row, [
+        { colA1: COLS.doctor,  value: doctor },
+        { colA1: COLS.triage,  value: triageOut },
+        { colA1: COLS.patient, value: patientName },
+        { colA1: COLS.status,  value: "Laukia apžiūros" },
+        { colA1: COLS.comment, value: comment || '' }
+      ]);
+
+      const undoToken = _storeUndo_({
+        type: 'assign',
+        sheet: SHEET_LENTA,
+        row,
+        startIdx: dIdx,
+        values: oldVals
+      });
+
+      _logAction_({
+        action: 'ASSIGN',
+        summary: `Priskirta ${bedLabel}: ${patientName} (T${triageOut}), gyd. ${doctor}`,
+        bed: bedLabel, patient: patientName, doctor: doctor, triage: String(triageOut), status: "Laukia apžiūros", comment: comment || ''
+      });
+
+      cache.remove(key);
+      return { ok:true, undoToken };
+    }
+  } catch (err) {
+    return { ok:false, msg: 'Klaida: ' + (err && err.message ? err.message : err) };
+  } finally {
+    lock.releaseLock();
   }
 }
 
-// -------- HELPERS --------
-function normalizePayload_(payload) {
-  if (!payload) return {};
-  const p = Object.assign({}, payload);
-  ['actor','bedLabel','patientName','triage','doctor','comment','fromBed','toBed','bedA','bedB','reason','userDisplayName']
-    .forEach(k => { if (k in p && typeof p[k] === 'string') p[k] = p[k].trim(); });
-  return p;
+/** Undo (assign ar move) */
+function undoAssign(undoToken) {
+  if (!undoToken) return { ok:false, msg:'Nėra undo žetono.' };
+
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+
+  try {
+    const data = _readUndo_(undoToken);
+    if (!data) return { ok:false, msg:'Nebegalima atšaukti (pasibaigė laikas).' };
+
+    const sh = _sheet(data.sheet);
+    if (!sh) return { ok:false, msg:'Nerastas lapas.' };
+
+    if (data.type === 'assign') {
+      if (data.startIdx && data.values) {
+        sh.getRange(data.row, data.startIdx, 1, data.values.length).setValues([data.values]);
+      } else if (data.cols && data.oldValues) {
+        const dIdx = _colA1ToIndex(COLS.doctor);
+        sh.getRange(data.row, dIdx, 1, data.oldValues.length).setValues([data.oldValues]);
+      }
+      _logAction_({ action: 'UNDO_ASSIGN', summary: `Atšaukta priskyrimas` });
+      _clearUndo_(undoToken);
+      return { ok:true };
+    }
+
+    if (data.type === 'move') {
+      data.rows.forEach(r => {
+        sh.getRange(r.row, r.startIdx, 1, r.values.length).setValues([r.values]);
+      });
+      _logAction_({ action: 'UNDO_MOVE', summary: `Atšauktas perkėlimas` });
+      _clearUndo_(undoToken);
+      return { ok:true };
+    }
+
+    return { ok:false, msg:'Nežinomas undo tipas.' };
+  } catch (err) {
+    return { ok:false, msg:'Klaida: ' + (err && err.message ? err.message : err) };
+  } finally {
+    lock.releaseLock();
+  }
 }
-function readJson(str) {
-  if (!str) return null;
-  try { return JSON.parse(str); } catch (e) { return null; }
+
+/**
+ * Perkėlimas: leidžiama LENTA↔LENTA (D..H), AMB↔AMB (K..N) ir AMB→LENTA (triažas persikelia).
+ * LENTA→AMB – neleidžiama.
+ */
+function movePatient(payload) {
+  const { fromBed, toBed } = payload || {};
+  if (!fromBed || !toBed) return { ok:false, msg:'Nurodykite iš kur ir į kur perkelti.' };
+
+  const fromIsAmb = /^AMB/.test(fromBed);
+  const toIsAmb   = /^AMB/.test(toBed);
+
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+
+  try {
+    const sh = _sheet(SHEET_LENTA);
+    if (!sh) return { ok:false, msg:'Nerastas lapas „LENTA“.' };
+
+    // --- 1) AMB -> AMB ---
+    if (fromIsAmb && toIsAmb) {
+      const fromRow = _ambRow(fromBed);
+      const toRow   = _ambRow(toBed);
+      if (fromRow <= 0 || toRow <= 0) return { ok:false, msg:'Nerastos AMB eilutės.' };
+
+      const pFrom = String(sh.getRange(fromRow, _colA1ToIndex(AMB.patient)).getValue() || '').trim();
+      if (!pFrom) return { ok:false, msg:'Pradinė lova tuščia.' };
+
+      const pTo = String(sh.getRange(toRow, _colA1ToIndex(AMB.patient)).getValue() || '').trim();
+      if (pTo) return { ok:false, msg:'Tikslo lova užimta.' };
+
+      const kIdx = _colA1ToIndex(AMB.doctor);
+      const nIdx = _colA1ToIndex(AMB.comment);
+      const width = nIdx - kIdx + 1;
+
+      const fromVals  = sh.getRange(fromRow, kIdx, 1, width).getValues()[0];
+      const toOldVals = sh.getRange(toRow,   kIdx, 1, width).getValues()[0];
+
+      sh.getRange(toRow, kIdx, 1, width).setValues([fromVals]);
+      sh.getRange(fromRow, kIdx, 1, width).clearContent();
+
+      const undoToken = _storeUndo_({
+        type: 'move',
+        sheet: SHEET_LENTA,
+        rows: [
+          { row: fromRow, startIdx: kIdx, values: fromVals },
+          { row: toRow,   startIdx: kIdx, values: toOldVals }
+        ]
+      });
+
+      const doctor  = String(fromVals[0] || '').trim();
+      const triage  = String(fromVals[1] || '').trim();
+      const patient = String(fromVals[2] || '').trim();
+
+      _logAction_({
+        action: 'MOVE_AMB',
+        summary: `AMB ${fromBed} → ${toBed}: ${patient}${triage?` (T${triage})`:''}, gyd. ${doctor}`,
+        from: fromBed, to: toBed, bed: toBed, patient, doctor, triage
+      });
+
+      return { ok:true, undoToken };
+    }
+
+    // --- 2) LENTA -> LENTA ---
+    if (!fromIsAmb && !toIsAmb) {
+      const fromRow = _findRowByValue(sh, COLS.bed, fromBed);
+      const toRow   = _findRowByValue(sh, COLS.bed, toBed);
+      if (fromRow <= 0 || toRow <= 0) return { ok:false, msg:'Nerastos lovų eilutės.' };
+
+      const pFrom = String(sh.getRange(fromRow, _colA1ToIndex(COLS.patient)).getValue() || '').trim();
+      if (!pFrom) return { ok:false, msg:'Pradinė lova tuščia.' };
+
+      const pTo = String(sh.getRange(toRow, _colA1ToIndex(COLS.patient)).getValue() || '').trim();
+      if (pTo) return { ok:false, msg:'Tikslo lova užimta.' };
+
+      const dIdx = _colA1ToIndex(COLS.doctor);
+      const hIdx = _colA1ToIndex(COLS.comment);
+      const width = hIdx - dIdx + 1;
+
+      const fromVals  = sh.getRange(fromRow, dIdx, 1, width).getValues()[0];
+      const toOldVals = sh.getRange(toRow,   dIdx, 1, width).getValues()[0];
+
+      sh.getRange(toRow, dIdx, 1, width).setValues([fromVals]);
+      sh.getRange(fromRow, dIdx, 1, width).clearContent();
+
+      const undoToken = _storeUndo_({
+        type: 'move',
+        sheet: SHEET_LENTA,
+        rows: [
+          { row: fromRow, startIdx: dIdx, values: fromVals },
+          { row: toRow,   startIdx: dIdx, values: toOldVals }
+        ]
+      });
+
+      const doctor  = String(fromVals[0] || '').trim();
+      const triage  = String(fromVals[1] || '').trim();
+      const patient = String(fromVals[2] || '').trim();
+
+      _logAction_({
+        action: 'MOVE',
+        summary: `Perkelta ${fromBed} → ${toBed}: ${patient} (T${triage}), gyd. ${doctor}`,
+        from: fromBed, to: toBed, bed: toBed, patient, doctor, triage
+      });
+
+      return { ok:true, undoToken };
+    }
+
+    // --- 3) AMB -> LENTA: triage persikelia į E, status = "Laukia apžiūros"
+    if (fromIsAmb && !toIsAmb) {
+      const fromRow = _ambRow(fromBed);
+      const toRow   = _findRowByValue(sh, COLS.bed, toBed);
+      if (fromRow <= 0 || toRow <= 0) return { ok:false, msg:'Nerastos lovų eilutės.' };
+
+      const pFrom = String(sh.getRange(fromRow, _colA1ToIndex(AMB.patient)).getValue() || '').trim();
+      if (!pFrom) return { ok:false, msg:'Pradinė lova tuščia.' };
+
+      const pTo = String(sh.getRange(toRow, _colA1ToIndex(COLS.patient)).getValue() || '').trim();
+      if (pTo) return { ok:false, msg:'Tikslo lova užimta.' };
+
+      const kIdx = _colA1ToIndex(AMB.doctor);
+      const nIdx = _colA1ToIndex(AMB.comment);
+      const widthAmb = nIdx - kIdx + 1;
+      const ambVals = sh.getRange(fromRow, kIdx, 1, widthAmb).getValues()[0]; // [doctor, triage, patient, comment]
+
+      const doctor  = String(ambVals[0] || '').trim();
+      const triageA = _normalizeTriage(ambVals[1]);
+      const patient = String(ambVals[2] || '').trim();
+      const comment = String(ambVals[3] || '').trim();
+
+      const dIdx = _colA1ToIndex(COLS.doctor);
+      const eIdx = _colA1ToIndex(COLS.triage);
+      const fIdx = _colA1ToIndex(COLS.patient);
+      const gIdx = _colA1ToIndex(COLS.status);
+      const hIdx = _colA1ToIndex(COLS.comment);
+
+      const toOldVals = sh.getRange(toRow, dIdx, 1, hIdx - dIdx + 1).getValues()[0];
+
+      sh.getRange(toRow, dIdx).setValue(doctor);
+      if (triageA === '') sh.getRange(toRow, eIdx).clearContent(); else sh.getRange(toRow, eIdx).setValue(triageA);
+      sh.getRange(toRow, fIdx).setValue(patient);
+      sh.getRange(toRow, gIdx).setValue("Laukia apžiūros");
+      sh.getRange(toRow, hIdx).setValue(comment);
+
+      sh.getRange(fromRow, kIdx, 1, widthAmb).clearContent();
+
+      const undoToken = _storeUndo_({
+        type: 'move',
+        sheet: SHEET_LENTA,
+        rows: [
+          { row: fromRow, startIdx: kIdx, values: ambVals },
+          { row: toRow,   startIdx: dIdx, values: toOldVals }
+        ]
+      });
+
+      _logAction_({
+        action: 'MOVE_AMB_TO_LENTA',
+        summary: `AMB ${fromBed} → ${toBed}: ${patient}${triageA?` (T${triageA})`:''}, gyd. ${doctor}; Status=Laukia apžiūros`,
+        from: fromBed, to: toBed, bed: toBed, patient, doctor, triage: String(triageA||''), status: "Laukia apžiūros", comment
+      });
+
+      return { ok:true, undoToken };
+    }
+
+    // --- 4) LENTA -> AMB – neleidžiama ---
+    return { ok:false, msg:'Negalima perkelti iš Salės į Ambulatoriją.' };
+
+  } catch (err) {
+    return { ok:false, msg:'Klaida: ' + (err && err.message ? err.message : err) };
+  } finally {
+    lock.releaseLock();
+  }
 }
+
+/** SWAP: sukeitimas dviejų UŽIMTŲ lovų (Salė↔Salė arba AMB↔AMB) */
+function swapBeds(payload){
+  const { bedA, bedB } = payload || {};
+  if(!bedA || !bedB || bedA===bedB) return { ok:false, msg:"Neteisingi parametrai." };
+
+  const aAmb = _isAmb(bedA), bAmb = _isAmb(bedB);
+  if (aAmb !== bAmb) return { ok:false, msg:"Sukeitimas tarp zonų (Salė↔AMB) neleidžiamas." };
+
+  const lock = LockService.getDocumentLock();
+  if(!lock.tryLock(5000)) return { ok:false, msg:"Sistema užimta." };
+  try{
+    const sh = _sheet(SHEET_LENTA);
+
+    if (aAmb) {
+      const rowA=_ambRow(bedA), rowB=_ambRow(bedB);
+      const k=_colA1ToIndex(AMB.doctor), n=_colA1ToIndex(AMB.comment), w=n-k+1;
+      const A=sh.getRange(rowA,k,1,w).getValues()[0], B=sh.getRange(rowB,k,1,w).getValues()[0];
+      if(!String(A[2]||'').trim() || !String(B[2]||'').trim()) return { ok:false, msg:"Abi lovos turi būti užimtos." };
+      sh.getRange(rowA,k,1,w).setValues([B]);
+      sh.getRange(rowB,k,1,w).setValues([A]);
+
+      const undoToken=_storeUndo_({ type:'move', sheet:SHEET_LENTA, rows:[
+        { row:rowA, startIdx:k, values:A }, { row:rowB, startIdx:k, values:B }
+      ]});
+      _logAction_({ action:"SWAP_AMB", summary:`AMB ${bedA} ⇄ ${bedB}` });
+      return { ok:true, undoToken };
+    } else {
+      const rowA=_findRowByValue(sh, COLS.bed, bedA), rowB=_findRowByValue(sh, COLS.bed, bedB);
+      const d=_colA1ToIndex(COLS.doctor), h=_colA1ToIndex(COLS.comment), w=h-d+1;
+      const A=sh.getRange(rowA,d,1,w).getValues()[0], B=sh.getRange(rowB,d,1,w).getValues()[0];
+      if(!String(A[2]||'').trim() || !String(B[2]||'').trim()) return { ok:false, msg:"Abi lovos turi būti užimtos." };
+      sh.getRange(rowA,d,1,w).setValues([B]);
+      sh.getRange(rowB,d,1,w).setValues([A]);
+
+      const undoToken=_storeUndo_({ type:'move', sheet:SHEET_LENTA, rows:[
+        { row:rowA, startIdx:d, values:A }, { row:rowB, startIdx:d, values:B }
+      ]});
+      _logAction_({ action:"SWAP", summary:`${bedA} ⇄ ${bedB}` });
+      return { ok:true, undoToken };
+    }
+  } catch (err) {
+    return { ok:false, msg:'Klaida: ' + (err && err.message ? err.message : err) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Išrašyti / išvalyti paciento įrašą (su Undo) */
+function dischargePatient(payload) {
+  const { bedLabel, reason } = payload || {};
+  if (!bedLabel) return { ok:false, msg:"Nenurodyta lova." };
+
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return { ok:false, msg:"Sistema užimta." };
+
+  try {
+    const sh = _sheet(SHEET_LENTA);
+    if (!sh) return { ok:false, msg:'Nerastas lapas „LENTA“.' };
+
+    if (_isAmb(bedLabel)) {
+      // --- AMB ---
+      const row = _ambRow(bedLabel);
+      if (row <= 0) return { ok:false, msg:`Nerasta AMB eilutė (${bedLabel}).` };
+
+      const kIdx = _colA1ToIndex(AMB.doctor);
+      const lIdx = _colA1ToIndex(AMB.triage);
+      const mIdx = _colA1ToIndex(AMB.patient);
+      const nIdx = _colA1ToIndex(AMB.comment);
+
+      const existingPatient = String(sh.getRange(row, mIdx).getValue() || '').trim();
+      if (!existingPatient) return { ok:false, msg:"Lova tuščia (AMB)." };
+
+      // Išsisaugom seną reikšmių bloką K..N
+      const old = sh.getRange(row, kIdx, 1, nIdx - kIdx + 1).getValues()[0];
+
+      // (neprivaloma) archyvuokite prieš trynimą:
+      // _archive_({ bed: bedLabel, patient: old[2], doctor: old[0], triage: old[1], status: '', comment: old[3] });
+
+      sh.getRange(row, kIdx, 1, nIdx - kIdx + 1).clearContent();
+
+      const undoToken = _storeUndo_({ type:'assign', sheet:SHEET_LENTA, row, startIdx:kIdx, values: old });
+      _logAction_({ action:"DISCHARGE_AMB", summary:`AMB ${bedLabel}: ${reason||'išrašyta'}`, bed:bedLabel, comment:reason||'' });
+      return { ok:true, undoToken, msg:"Išrašyta iš Ambulatorijos." };
+    } else {
+      // --- LENTA ---
+      // Greitas paieškos kelias (jei turite indeksą), su „fallback“
+      // --- LENTA ---
+      let row = _findRowByValue(sh, COLS.bed, bedLabel);   // <— tik lėtas, bet saugus paieškos būdas
+      if (row <= 0) return { ok:false, msg:`Nerasta lova (${bedLabel}).` };
+
+
+      const dIdx = _colA1ToIndex(COLS.doctor);
+      const eIdx = _colA1ToIndex(COLS.triage);
+      const fIdx = _colA1ToIndex(COLS.patient);
+      const gIdx = _colA1ToIndex(COLS.status);
+      const hIdx = _colA1ToIndex(COLS.comment);
+
+      const existingPatient = String(sh.getRange(row, fIdx).getValue() || '').trim();
+      if (!existingPatient) return { ok:false, msg:"Lova tuščia." };
+
+      // Išsisaugom D..H bloką „undo“ ir (neprivalomai) archyvui
+      const old = sh.getRange(row, dIdx, 1, hIdx - dIdx + 1).getValues()[0];
+      // _archive_({ bed: bedLabel, patient: old[2], doctor: old[0], triage: old[1], status: old[3], comment: old[4] });
+
+      // Šalinam visą turinį D..H (gyd., triažas, pacientas, statusas, komentaras)
+      sh.getRange(row, dIdx, 1, hIdx - dIdx + 1).clearContent();
+
+      const undoToken = _storeUndo_({ type:'assign', sheet:SHEET_LENTA, row, startIdx:dIdx, values: old });
+      _logAction_({ action:"DISCHARGE", summary:`${bedLabel}: ${reason||'išrašyta'}`, bed:bedLabel, comment:reason||'' });
+      return { ok:true, undoToken, msg:"Išrašyta iš Salės." };
+    }
+  } catch (err) {
+    return { ok:false, msg:'Klaida išrašant: ' + (err && err.message ? err.message : err) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
