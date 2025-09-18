@@ -310,6 +310,7 @@
 <script>
   // ------- Būsena -------
   let currentData=null;
+  let currentLayout=null;
   let reservation={ bedLabel:null, keepAliveTimer:null, keepAliveName:null, ok:false };
   let refreshTimer=null;
   let lastUndoToken=null, undoCountdown=null;
@@ -325,9 +326,10 @@
   function fetchAllAndRender(){
     const userName = getLocalUserName();
     google.script.run
-      .withSuccessHandler(({zonesPayload, doctors, recent, now})=>{
+      .withSuccessHandler(({zonesPayload, layout, doctors, recent, now})=>{
         currentData=zonesPayload;
-        renderZones(zonesPayload);
+        currentLayout=Array.isArray(layout)?layout:null;
+        renderZones(zonesPayload, layout);
         populateDoctors(doctors);
         renderRecent(recent || []);
         document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
@@ -335,25 +337,51 @@
       .sidebarGetAll({ userName });
   }
 
-  function renderZones(data){
+  function buildFallbackLayout(){
+    const amb = Array.from({length:15},(_,i)=>`AMB${i+1}`);
+    return [
+      { name:"Zona IT", rows:[["IT1","IT2"]] },
+      { name:"Zona 1", rows:[["1","2","3","P1","P2","P3"]] },
+      { name:"Zona 2", rows:[["4","5","6","P4","P5","P6","S4","S5","S6"]] },
+      { name:"Zona 3", rows:[["7","8","9","P7","P8","P9","S7","S8","S9"]] },
+      { name:"Zona 4", rows:[["10","11","12","P10","P11","P12","S10","S11","S12"]] },
+      { name:"Zona 5", rows:[["13","14","15","16","17","121A","121B","IZO"]] },
+      { name:"Ambulatorija", rows:[amb.slice(0,8), amb.slice(8)] }
+    ];
+  }
+
+  function renderZones(data, layoutPayload){
     const zonasDiv=document.getElementById("zones");
     zonasDiv.innerHTML="";
 
-    const amb = Array.from({length:15},(_,i)=>`AMB${i+1}`);
-    const layout={
-      "Zona IT":[["IT1","IT2"]],
-      "Zona 1":[["1","2","3","P1","P2","P3"]],
-      "Zona 2":[["4","5","6","P4","P5","P6","S4","S5","S6"]],
-      "Zona 3":[["7","8","9","P7","P8","P9","S7","S8","S9"]],
-      "Zona 4":[["10","11","12","P10","P11","P12","S10","S11","S12"]],
-      "Zona 5":[["13","14","15","16","17","121A","121B","IZO"]],
-      "Ambulatorija":[amb.slice(0,8), amb.slice(8)]
-    };
+    const bedGroups=(data && data.beds && typeof data.beds === "object")?data.beds:{};
+    const nursesMap=(data && data.nurses && typeof data.nurses === "object")?data.nurses:{};
 
-    const allBeds=Object.values(data.beds).flatMap(z=>z.beds);
+    let layoutList = Array.isArray(layoutPayload) && layoutPayload.length ? layoutPayload : null;
+    if(!layoutList && Array.isArray(currentLayout) && currentLayout.length){
+      layoutList = currentLayout;
+    }
+    if(!layoutList){
+      console.warn('Zonų maketas negautas iš serverio, naudojamas lokalus fallback (diag).');
+      layoutList = buildFallbackLayout();
+    }
+
+    const allBeds=Object.values(bedGroups).flatMap(z=>Array.isArray(z.beds)?z.beds:[]);
     const bedMap = new Map(allBeds.map(b => [b.label, b]));
 
-    Object.entries(layout).forEach(([zoneName,rows])=>{
+    layoutList.forEach(zoneLayout=>{
+      if(!zoneLayout || !zoneLayout.name) return;
+      const zoneName=zoneLayout.name;
+      const rawRows = Array.isArray(zoneLayout.rows)?zoneLayout.rows:[];
+      const rows = rawRows.map(row=>{
+        if(Array.isArray(row)) return row.filter(label=>typeof label==='string' && label);
+        if(typeof row==='string' && row) return [row];
+        return [];
+      }).filter(row=>row.length);
+      if(!rows.length && bedGroups[zoneName] && Array.isArray(bedGroups[zoneName].beds)){
+        rows.push(bedGroups[zoneName].beds.map(b=>b.label));
+      }
+
       const zoneBeds=rows.flat().map(l=>bedMap.get(l)).filter(Boolean);
       const occCount=zoneBeds.filter(b=>b.occupied||b.reservedByOther||b.reservedByMe).length;
       const occRatio=zoneBeds.length?(occCount/zoneBeds.length):0;
@@ -361,7 +389,7 @@
       const zoneEl=document.createElement("div"); zoneEl.className="zone";
       const header=document.createElement("div"); header.className="zone-header";
       const title=document.createElement("div"); title.className="zone-title"; title.textContent=zoneName+" – "+Math.round(occRatio*100)+"%";
-      const nurse=document.createElement("div"); nurse.className="nurse"; nurse.textContent="Slaug: "+(data.nurses[zoneName]||"Nenurodyta");
+      const nurse=document.createElement("div"); nurse.className="nurse"; nurse.textContent="Slaug: "+(nursesMap[zoneName]||"Nenurodyta");
       header.appendChild(title); header.appendChild(nurse);
 
       const progress=document.createElement("div"); progress.className="progress";
@@ -421,7 +449,7 @@
               const from=ev.dataTransfer.getData("text/plain")||dragFrom; const to=b.label;
               if(!from || from===to) return;
               const fromIsAmb = from.startsWith('AMB');
-              const toIsAmb   = to.startsWith('AMB');
+              const toIsAmb   = b.label.startsWith('AMB');
               if ((fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb)) {
                 google.script.run.withSuccessHandler(res=>{
                   if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko sukeisti."); return; }
