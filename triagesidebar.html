@@ -351,9 +351,10 @@
     };
 
     const allBeds=Object.values(data.beds).flatMap(z=>z.beds);
+    const bedMap = new Map(allBeds.map(b => [b.label, b]));
 
     Object.entries(layout).forEach(([zoneName,rows])=>{
-      const zoneBeds=rows.flat().map(l=>allBeds.find(b=>b.label===l)).filter(Boolean);
+      const zoneBeds=rows.flat().map(l=>bedMap.get(l)).filter(Boolean);
       const occCount=zoneBeds.filter(b=>b.occupied||b.reservedByOther||b.reservedByMe).length;
       const occRatio=zoneBeds.length?(occCount/zoneBeds.length):0;
 
@@ -371,7 +372,7 @@
       rows.forEach(r=>{
         const rowEl=document.createElement("div"); rowEl.className="bed-row";
         r.forEach(label=>{
-          const b=allBeds.find(x=>x.label===label); if(!b) return;
+          const b=bedMap.get(label); if(!b) return;
           const el=document.createElement("div"); el.className="bed"; el.textContent=b.label;
           // Tooltip (hover)
           if (b.occupied && b.patient) {
