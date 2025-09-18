@@ -36,15 +36,32 @@ const LOG_HEADERS = ['TimeISO','User','Action','Summary','From','To','Bed','Pati
 
 /** Zonos (įskaitant Ambulatoriją) */
 const AMB_BEDS = Array.from({length: (AMB.lastRow - AMB.firstRow + 1)}, (_,i)=>`AMB${i+1}`);
-const ZONOS = {
-  "Zona IT": ["IT1","IT2"],
-  "Zona 1":  ["1","2","3","P1","P2","P3"],
-  "Zona 2":  ["4","5","6","P4","P5","P6","S4","S5","S6"],
-  "Zona 3":  ["7","8","9","P7","P8","P9","S7","S8","S9"],
-  "Zona 4":  ["10","11","12","P10","P11","P12","S10","S11","S12"],
-  "Zona 5":  ["13","14","15","16","17","121A","121B","IZO"],
-  "Ambulatorija": AMB_BEDS
-};
+const ZONOS_LAYOUT = (() => {
+  const ambRows = [];
+  if (AMB_BEDS.length) {
+    const midpoint = Math.ceil(AMB_BEDS.length / 2);
+    ambRows.push(AMB_BEDS.slice(0, midpoint));
+    if (midpoint < AMB_BEDS.length) {
+      ambRows.push(AMB_BEDS.slice(midpoint));
+    }
+  }
+  return [
+    { name: "Zona IT", rows: [["IT1","IT2"]] },
+    { name: "Zona 1", rows: [["1","2","3","P1","P2","P3"]] },
+    { name: "Zona 2", rows: [["4","5","6","P4","P5","P6","S4","S5","S6"]] },
+    { name: "Zona 3", rows: [["7","8","9","P7","P8","P9","S7","S8","S9"]] },
+    { name: "Zona 4", rows: [["10","11","12","P10","P11","P12","S10","S11","S12"]] },
+    { name: "Zona 5", rows: [["13","14","15","16","17","121A","121B","IZO"]] },
+    {
+      name: "Ambulatorija",
+      rows: ambRows.length ? ambRows : [AMB_BEDS.slice()]
+    }
+  ];
+})();
+const ZONOS = ZONOS_LAYOUT.reduce((acc, zone) => {
+  acc[zone.name] = zone.rows.flat();
+  return acc;
+}, {});
 // Slaugytojų skaitymas iš lapo LENTA konkrečiose vietose.
 // - Zona IT: A2 + A3 (abi sujungiamos " / " jei abi užpildytos)
 // - Zona 1: A4–A9 (merged)  -> imame A4
@@ -249,8 +266,13 @@ function _logAction_(o) {
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
   const userName = (payload && typeof payload === 'object') ? payload.userName : '';
+  const layout = ZONOS_LAYOUT.map(zone => ({
+    name: zone.name,
+    rows: zone.rows.map(row => row.slice())
+  }));
   return {
     zonesPayload: getLiveZoneData(userName),
+    layout,
     doctors: getDoctorsList_(),
     recent: _getRecentActions_(8),
     now: new Date().toISOString()
