@@ -96,7 +96,7 @@ function rodytiLovuSkydeli() {
 }
 function setUsername(name){ PropertiesService.getUserProperties().setProperty("username", name); }
 function getUsername(){ return PropertiesService.getUserProperties().getProperty("username"); }
-function getCurrentUserName(){ return getUsername() || "Nenurodytas"; }
+function getCurrentUserName(){ return _resolveUserIdentity_('').display; }
 
 function logArrival(timestampSheet, row) {
   const user = getCurrentUserName();
@@ -128,19 +128,40 @@ function _findRowByValue(sheet, colA1, value) {
   return cell ? cell.getRow() : -1;
 }
 
-function _getUserTag() {
-  // 1) pirmiausia – vartotojo įvestas vardas
-  const uname = getUsername();
-  if (uname) return uname;
+function _resolveUserIdentity_(userName) {
+  let name = '';
+  if (typeof userName === 'string') {
+    name = userName.trim();
+  }
 
-  // 2) jei nėra – bandome emailą
+  if (!name) {
+    try {
+      const stored = getUsername();
+      if (stored) name = String(stored).trim();
+    } catch (e) {}
+  }
+
+  if (!name) {
+    try {
+      const email = Session.getActiveUser().getEmail();
+      if (email) name = String(email).trim();
+    } catch (e) {}
+  }
+
+  let tempKey = '';
   try {
-    const email = Session.getActiveUser().getEmail();
-    if (email) return email;
+    tempKey = Session.getTemporaryActiveUserKey();
   } catch (e) {}
 
-  // 3) fallback – anon raktas
-  return 'anon:' + Session.getTemporaryActiveUserKey();
+  const baseTag = name || 'anon';
+  const tag = tempKey ? `${baseTag}#${tempKey}` : baseTag;
+  const display = name || 'Nenurodytas';
+
+  return { tag, display };
+}
+
+function _getUserTag(userName) {
+  return _resolveUserIdentity_(userName).tag;
 }
 
 function _resKey(label) { return 'RES_BED_' + String(label); }
@@ -202,9 +223,12 @@ function _logSheet_() {
 function _logAction_(o) {
   try {
     const sh = _logSheet_();
+    const fallbackName = (o && o.userName) ? o.userName : (o && o.userTag ? String(o.userTag).split('#')[0] : '');
+    const identity = (o && o.userIdentity) ? o.userIdentity : _resolveUserIdentity_(fallbackName);
+    const userCell = identity && identity.display ? identity.display : 'Nenurodytas';
     const row = [
       new Date().toISOString(),
-      getCurrentUserName(),
+      userCell,
       o.action || '',
       o.summary || '',
       o.from || '',
@@ -223,9 +247,10 @@ function _logAction_(o) {
 }
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
-function sidebarGetAll() {
+function sidebarGetAll(payload) {
+  const userName = (payload && typeof payload === 'object') ? payload.userName : '';
   return {
-    zonesPayload: getLiveZoneData(),
+    zonesPayload: getLiveZoneData(userName),
     doctors: getDoctorsList_(),
     recent: _getRecentActions_(8),
     now: new Date().toISOString()
@@ -246,9 +271,9 @@ function _getRecentActions_(limit) {
 }
 
 /** Užimtumas (LENTA F; AMB M) ir slaugytojos, pac. vardas */
-function getLiveZoneData() {
+function getLiveZoneData(userName) {
   const sh = _sheet(SHEET_LENTA);
-  const me = _getUserTag();
+  const me = _getUserTag(userName);
   const cache = CacheService.getDocumentCache();
 
   // Surenkam pacientus pagal lovą (Salė + AMB)
@@ -326,8 +351,13 @@ function getDoctorsList_() {
 }
 
 /** ===================== RESERVATIONS (su LockService) ===================== **/
-function reserveBed(bedLabel) {
+function reserveBed(payload) {
+  const data = (typeof payload === 'object' && payload !== null) ? payload : { bedLabel: payload };
+  const bedLabel = data && data.bedLabel;
   if (!bedLabel) return { ok:false, msg:'Nenurodytas lovos žymuo.' };
+
+  const userIdentity = _resolveUserIdentity_(data.userName);
+  const me = userIdentity.tag;
 
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
@@ -351,7 +381,6 @@ function reserveBed(bedLabel) {
     const cache = CacheService.getDocumentCache();
     const key = _resKey(bedLabel);
     const holder = cache.get(key);
-    const me = _getUserTag();
 
     if (holder && holder !== me) return { ok:false, msg:'Lova jau rezervuota kito naudotojo.' };
 
@@ -361,15 +390,19 @@ function reserveBed(bedLabel) {
     lock.releaseLock();
   }
 }
-function keepAliveReservation(bedLabel) {
+function keepAliveReservation(payload) {
+  const data = (typeof payload === 'object' && payload !== null) ? payload : { bedLabel: payload };
+  const bedLabel = data && data.bedLabel;
   if (!bedLabel) return;
   const cache = CacheService.getDocumentCache();
   const key = _resKey(bedLabel);
   const holder = cache.get(key);
-  const me = _getUserTag();
+  const me = _getUserTag(data.userName);
   if (holder && holder === me) cache.put(key, me, RES_TTL_SEC);
 }
-function releaseReservation(bedLabel) {
+function releaseReservation(payload) {
+  const data = (typeof payload === 'object' && payload !== null) ? payload : { bedLabel: payload };
+  const bedLabel = data && data.bedLabel;
   if (!bedLabel) return;
   CacheService.getDocumentCache().remove(_resKey(bedLabel));
 }
@@ -396,7 +429,9 @@ function assignBed(payload) {
   if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
 
   try {
-    const { bedLabel, patientName, triage, doctor, comment } = payload || {};
+    const { bedLabel, patientName, triage, doctor, comment, userName } = payload || {};
+    const userIdentity = _resolveUserIdentity_(userName);
+    const me = userIdentity.tag;
     if (!bedLabel || !patientName || !doctor) {
       return { ok:false, msg:'Trūksta laukų (lova, vardas, gydytojas).' };
     }
@@ -405,7 +440,6 @@ function assignBed(payload) {
     const cache = CacheService.getDocumentCache();
     const key = _resKey(bedLabel);
     const holder = cache.get(key);
-    const me = _getUserTag();
     if (holder && holder !== me) return { ok:false, msg:'Lova rezervuota kito naudotojo.' };
 
     const sh = _sheet(SHEET_LENTA);
@@ -443,6 +477,7 @@ function assignBed(payload) {
 
       _logAction_({
         action: 'ASSIGN_AMB',
+        userIdentity,
         summary: `AMB ${bedLabel}: ${patientName}${triageOut?` (T${triageOut})`:''}, gyd. ${doctor}`,
         bed: bedLabel, patient: patientName, doctor: doctor, triage: String(triageOut||''), comment: comment || ''
       });
@@ -483,6 +518,7 @@ function assignBed(payload) {
 
       _logAction_({
         action: 'ASSIGN',
+        userIdentity,
         summary: `Priskirta ${bedLabel}: ${patientName} (T${triageOut}), gyd. ${doctor}`,
         bed: bedLabel, patient: patientName, doctor: doctor, triage: String(triageOut), status: "Laukia apžiūros", comment: comment || ''
       });
@@ -498,8 +534,11 @@ function assignBed(payload) {
 }
 
 /** Undo (assign ar move) */
-function undoAssign(undoToken) {
+function undoAssign(payload) {
+  const dataIn = (typeof payload === 'object' && payload !== null) ? payload : { token: payload };
+  const undoToken = dataIn && dataIn.token;
   if (!undoToken) return { ok:false, msg:'Nėra undo žetono.' };
+  const userIdentity = _resolveUserIdentity_(dataIn.userName);
 
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
@@ -518,7 +557,7 @@ function undoAssign(undoToken) {
         const dIdx = _colA1ToIndex(COLS.doctor);
         sh.getRange(data.row, dIdx, 1, data.oldValues.length).setValues([data.oldValues]);
       }
-      _logAction_({ action: 'UNDO_ASSIGN', summary: `Atšaukta priskyrimas` });
+      _logAction_({ action: 'UNDO_ASSIGN', summary: `Atšaukta priskyrimas`, userIdentity });
       _clearUndo_(undoToken);
       return { ok:true };
     }
@@ -527,7 +566,7 @@ function undoAssign(undoToken) {
       data.rows.forEach(r => {
         sh.getRange(r.row, r.startIdx, 1, r.values.length).setValues([r.values]);
       });
-      _logAction_({ action: 'UNDO_MOVE', summary: `Atšauktas perkėlimas` });
+      _logAction_({ action: 'UNDO_MOVE', summary: `Atšauktas perkėlimas`, userIdentity });
       _clearUndo_(undoToken);
       return { ok:true };
     }
@@ -545,11 +584,13 @@ function undoAssign(undoToken) {
  * LENTA→AMB – neleidžiama.
  */
 function movePatient(payload) {
-  const { fromBed, toBed } = payload || {};
+  const { fromBed, toBed, userName } = payload || {};
   if (!fromBed || !toBed) return { ok:false, msg:'Nurodykite iš kur ir į kur perkelti.' };
 
   const fromIsAmb = /^AMB/.test(fromBed);
   const toIsAmb   = /^AMB/.test(toBed);
+
+  const userIdentity = _resolveUserIdentity_(userName);
 
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
@@ -595,6 +636,7 @@ function movePatient(payload) {
 
       _logAction_({
         action: 'MOVE_AMB',
+        userIdentity,
         summary: `AMB ${fromBed} → ${toBed}: ${patient}${triage?` (T${triage})`:''}, gyd. ${doctor}`,
         from: fromBed, to: toBed, bed: toBed, patient, doctor, triage
       });
@@ -639,6 +681,7 @@ function movePatient(payload) {
 
       _logAction_({
         action: 'MOVE',
+        userIdentity,
         summary: `Perkelta ${fromBed} → ${toBed}: ${patient} (T${triage}), gyd. ${doctor}`,
         from: fromBed, to: toBed, bed: toBed, patient, doctor, triage
       });
@@ -695,6 +738,7 @@ function movePatient(payload) {
 
       _logAction_({
         action: 'MOVE_AMB_TO_LENTA',
+        userIdentity,
         summary: `AMB ${fromBed} → ${toBed}: ${patient}${triageA?` (T${triageA})`:''}, gyd. ${doctor}; Status=Laukia apžiūros`,
         from: fromBed, to: toBed, bed: toBed, patient, doctor, triage: String(triageA||''), status: "Laukia apžiūros", comment
       });
@@ -714,11 +758,13 @@ function movePatient(payload) {
 
 /** SWAP: sukeitimas dviejų UŽIMTŲ lovų (Salė↔Salė arba AMB↔AMB) */
 function swapBeds(payload){
-  const { bedA, bedB } = payload || {};
+  const { bedA, bedB, userName } = payload || {};
   if(!bedA || !bedB || bedA===bedB) return { ok:false, msg:"Neteisingi parametrai." };
 
   const aAmb = _isAmb(bedA), bAmb = _isAmb(bedB);
   if (aAmb !== bAmb) return { ok:false, msg:"Sukeitimas tarp zonų (Salė↔AMB) neleidžiamas." };
+
+  const userIdentity = _resolveUserIdentity_(userName);
 
   const lock = LockService.getDocumentLock();
   if(!lock.tryLock(5000)) return { ok:false, msg:"Sistema užimta." };
@@ -736,7 +782,7 @@ function swapBeds(payload){
       const undoToken=_storeUndo_({ type:'move', sheet:SHEET_LENTA, rows:[
         { row:rowA, startIdx:k, values:A }, { row:rowB, startIdx:k, values:B }
       ]});
-      _logAction_({ action:"SWAP_AMB", summary:`AMB ${bedA} ⇄ ${bedB}` });
+      _logAction_({ action:"SWAP_AMB", summary:`AMB ${bedA} ⇄ ${bedB}`, userIdentity });
       return { ok:true, undoToken };
     } else {
       const rowA=_findRowByValue(sh, COLS.bed, bedA), rowB=_findRowByValue(sh, COLS.bed, bedB);
@@ -749,7 +795,7 @@ function swapBeds(payload){
       const undoToken=_storeUndo_({ type:'move', sheet:SHEET_LENTA, rows:[
         { row:rowA, startIdx:d, values:A }, { row:rowB, startIdx:d, values:B }
       ]});
-      _logAction_({ action:"SWAP", summary:`${bedA} ⇄ ${bedB}` });
+      _logAction_({ action:"SWAP", summary:`${bedA} ⇄ ${bedB}`, userIdentity });
       return { ok:true, undoToken };
     }
   } catch (err) {
@@ -761,8 +807,10 @@ function swapBeds(payload){
 
 /** Išrašyti / išvalyti paciento įrašą (su Undo) */
 function dischargePatient(payload) {
-  const { bedLabel, reason } = payload || {};
+  const { bedLabel, reason, userName } = payload || {};
   if (!bedLabel) return { ok:false, msg:"Nenurodyta lova." };
+
+  const userIdentity = _resolveUserIdentity_(userName);
 
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(5000)) return { ok:false, msg:"Sistema užimta." };
@@ -793,7 +841,7 @@ function dischargePatient(payload) {
       sh.getRange(row, kIdx, 1, nIdx - kIdx + 1).clearContent();
 
       const undoToken = _storeUndo_({ type:'assign', sheet:SHEET_LENTA, row, startIdx:kIdx, values: old });
-      _logAction_({ action:"DISCHARGE_AMB", summary:`AMB ${bedLabel}: ${reason||'išrašyta'}`, bed:bedLabel, comment:reason||'' });
+      _logAction_({ action:"DISCHARGE_AMB", summary:`AMB ${bedLabel}: ${reason||'išrašyta'}`, bed:bedLabel, comment:reason||'', userIdentity });
       return { ok:true, undoToken, msg:"Išrašyta iš Ambulatorijos." };
     } else {
       // --- LENTA ---
@@ -820,7 +868,7 @@ function dischargePatient(payload) {
       sh.getRange(row, dIdx, 1, hIdx - dIdx + 1).clearContent();
 
       const undoToken = _storeUndo_({ type:'assign', sheet:SHEET_LENTA, row, startIdx:dIdx, values: old });
-      _logAction_({ action:"DISCHARGE", summary:`${bedLabel}: ${reason||'išrašyta'}`, bed:bedLabel, comment:reason||'' });
+      _logAction_({ action:"DISCHARGE", summary:`${bedLabel}: ${reason||'išrašyta'}`, bed:bedLabel, comment:reason||'', userIdentity });
       return { ok:true, undoToken, msg:"Išrašyta iš Salės." };
     }
   } catch (err) {
