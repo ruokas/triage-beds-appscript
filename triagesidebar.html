@@ -11,11 +11,13 @@
     }
     html,body{margin:0;padding:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
     body{padding:5px;font-size:13px}
+
     .legend{display:flex;align-items:center;gap:8px;margin:0 0 6px 0;font-size:11px;color:var(--muted)}
     .dot{width:8px;height:8px;border-radius:999px;display:inline-block;border:1px solid var(--line)}
     .dot.free{background:var(--free-bg);border-color:#a7d7a9}
     .dot.res{background:var(--res-bg);border-color:#fcd34d}
     .dot.occ{background:var(--occ-bg);border-color:#f5c2c7}
+
     .zone{border:1px solid var(--line);border-radius:10px;padding:5px;margin-bottom:5px;background:var(--card)}
     .zone-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px}
     .zone-title{font-weight:600;font-size:13px}
@@ -24,7 +26,12 @@
     .progress-fill{background:linear-gradient(90deg,#22c55e,#86efac);height:100%;width:0%;transition:width .25s ease}
     .bed-rows{display:flex;flex-direction:column;gap:4px}
     .bed-row{display:flex;flex-wrap:wrap;gap:4px}
-    .bed{padding:4px 7px;border-radius:6px;background:var(--chip);border:1px solid var(--line);font-size:12px;line-height:1.4;user-select:none;white-space:nowrap;cursor:default}
+
+    .bed{
+      padding:4px 7px;
+      border-radius:6px;background:var(--chip);border:1px solid var(--line);
+      font-size:12px;line-height:1.4;user-select:none;white-space:nowrap;cursor:default
+    }
     .bed.free{background:var(--free-bg);border-color:#a7d7a9;color:var(--free);cursor:pointer}
     .bed.free:hover{filter:brightness(0.98)}
     .bed.occupied{background:var(--occ-bg);border-color:#f5c2c7;color:var(--occ)}
@@ -34,7 +41,10 @@
     .bed.drop-ok{box-shadow:inset 0 0 0 2px var(--accent)}
     .bed.swap-ok{box-shadow:inset 0 0 0 2px #3b82f6}
     .bed.drop-no{opacity:.5}
+
     #last-updated{font-size:11px;color:var(--muted);margin:6px 2px 8px;text-align:right}
+
+    /* Modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9000}
     .modal{width:100%;max-width:460px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.15)}
     .modal h3{margin:0 0 6px;font-size:15px}
@@ -43,14 +53,16 @@
     .field label{font-size:11px;color:var(--muted)}
     .field input[type="text"],.field textarea,.field select{background:#fff;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px;outline:none}
     .field textarea{resize:vertical;min-height:60px}
+
     .chip-row{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
     .chip{padding:4px 10px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid transparent;color:#fff}
-    .chip-1{background:#3b82f6}
-    .chip-2{background:#ef4444}
-    .chip-3{background:#f59e0b}
-    .chip-4{background:#22c55e}
-    .chip-5{background:#9ca3af}
+    .chip-1{background:#3b82f6} /* mėlyna */
+    .chip-2{background:#ef4444} /* raudona */
+    .chip-3{background:#f59e0b} /* geltona */
+    .chip-4{background:#22c55e} /* žalia */
+    .chip-5{background:#9ca3af} /* pilka */
     .chip.active{box-shadow:inset 0 0 0 2px rgba(0,0,0,.2)}
+
     .actions{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
     .btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
     .btn[disabled]{opacity:.6;cursor:not-allowed}
@@ -59,31 +71,56 @@
     .btn.primary:hover{filter:brightness(0.98)}
     .btn.danger{border-color:#f5c2c7;background:var(--occ-bg);color:var(--occ)}
     .btn.danger:hover{filter:brightness(0.98)}
+    .icon-btn{  border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:999px;
+      width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:12px;cursor:pointer;line-height:1}
+    .icon-btn:hover{background:#f9fafb}
+    .help-kbd{display:inline-block;border:1px solid #e5e7eb;border-bottom-width:2px;border-radius:6px;padding:0 6px;font-size:12px;background:#fff;margin:0 2px}
+
+
+    /* Undo juosta */
+    .undo-bar{position:fixed;right:12px;bottom:12px;display:none;gap:8px;align-items:center;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9500}
+    .undo-bar .timer{font-size:12px;opacity:.85}
+    .undo-bar .link{cursor:pointer;text-decoration:underline}
+
+    /* Recent */
     .recent{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:5px;margin-top:5px}
     .recent h4{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
     .rlist{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
     .ritem{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.35}
     .ritem .t{font-variant-numeric:tabular-nums;color:var(--muted);width:44px;flex:0 0 44px}
     .ritem .s{flex:1}
-    .ctx-menu,.confirm-pop{position:fixed;display:none;z-index:10001;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);min-width:200px}
-    .ctx-list{margin:4px;padding:4px}
-    .ctx-item{padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+
+    /* Context menu + confirm popover */
+    .ctx-menu,.confirm-pop{
+  position:fixed; display:none;
+  /* buvo z-index:10000;  */
+  z-index:10001;                /* <- pakelta virš meniu */
+  background:#fff; border:1px solid var(--line);
+  border-radius:8px; box-shadow:0 10px 24px rgba(0,0,0,.15);
+  min-width:200px;
+}
+
+    .ctx-list{margin:4px; padding:4px}
+    .ctx-item{padding:8px 10px; border-radius:6px; cursor:pointer; font-size:13px}
     .ctx-item:hover{background:#f3f4f6}
     .confirm-pop .body{padding:10px}
-    .confirm-pop .title{font-size:13px;margin-bottom:8px}
-    .confirm-pop .actions{display:flex;gap:8px;justify-content:flex-end;padding:8px}
-    .userline{display:flex;align-items:center;gap:8px;margin:0 0 8px 0;font-size:12px;color:#374151}
-    .userline input{font-size:12px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;min-width:95px;outline:none}
-    .userline input:focus{border-color:#9ca3af;box-shadow:0 0 0 2px rgba(156,163,175,.25)}
-    .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;border:1px solid transparent;user-select:none}
-    .b-ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
-    .b-warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
-    .b-muted{background:#f3f4f6;border-color:#e5e7eb;color:#6b7280}
-    .blink{animation:blink 600ms ease-out}
-    @keyframes blink{0%{background:#bbf7d0}100%{background:#ecfdf5}}
+    .confirm-pop .title{font-size:13px; margin-bottom:8px}
+    .confirm-pop .actions{display:flex; gap:8px; justify-content:flex-end; padding:8px}
   </style>
 </head>
 <body>
+<style>
+  .userline{display:flex;align-items:center;gap:8px;margin:0 0 8px 0;font-size:12px;color:#374151}
+  .userline input{font-size:12px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;min-width:95px;outline:none}
+  .userline input:focus{border-color:#9ca3af;box-shadow:0 0 0 2px rgba(156,163,175,.25)}
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;border:1px solid transparent;user-select:none}
+  .b-ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}      /* žalia */
+  .b-warn{background:#fffbeb;border-color:#fde68a;color:#92400e}   /* geltona */
+  .b-muted{background:#f3f4f6;border-color:#e5e7eb;color:#6b7280}  /* pilka */
+  .blink{animation:blink 600ms ease-out}
+  @keyframes blink{0%{background:#bbf7d0}100%{background:#ecfdf5}}
+</style>
 
 <div class="userline">
   <span>Vardas:</span>
@@ -94,6 +131,64 @@
   </span>
 </div>
 
+<script>
+(function(){
+  let savedName = "";  // kas saugoma UserProperties
+  const el = document.getElementById("fld-username");
+  const badge = document.getElementById("user-badge");
+  const bText = document.getElementById("user-badge-text");
+  const bIcon = document.getElementById("user-badge-icon");
+
+  function setBadge(state){
+    badge.classList.remove("b-ok","b-warn","b-muted","blink");
+    if(state==="ok"){
+      badge.classList.add("b-ok");
+      bText.textContent="Patvirtinta";
+      bIcon.textContent="✓";
+    }else if(state==="warn"){
+      badge.classList.add("b-warn");
+      bText.textContent="Nepatvirtinta";
+      bIcon.textContent="!";
+    }else{
+      badge.classList.add("b-muted");
+      bText.textContent="Neįvesta";
+      bIcon.textContent="•";
+    }
+  }
+  function refreshState(){
+    const v = (el.value||"").trim();
+    if(!v){ setBadge("muted"); return; }
+    setBadge(v===savedName ? "ok" : "warn");
+  }
+  function saveNow(){
+    const v = (el.value||"").trim();
+    if(!v || v===savedName) { refreshState(); return; }
+    google.script.run.withSuccessHandler(()=>{
+      savedName = v;
+      setBadge("ok");
+      badge.classList.add("blink"); setTimeout(()=>badge.classList.remove("blink"), 650);
+    }).setUsername(v);
+  }
+
+  // užkraunam išsaugotą vardą
+  google.script.run.withSuccessHandler(function(stored){
+    savedName = stored||"";
+    el.value = savedName;
+    refreshState();
+  }).getUsername();
+
+  // įvykių logika
+  el.addEventListener("input", refreshState);
+  el.addEventListener("blur", saveNow);
+  el.addEventListener("keydown", e=>{
+    if(e.key==="Enter"){ e.preventDefault(); saveNow(); }
+  });
+})();
+</script>
+
+
+
+
 <div class="legend">
   <span class="dot free"></span> Laisva
   <span class="dot res"></span> Rezervuota
@@ -103,20 +198,24 @@
 <div id="zones"></div>
 <div id="last-updated"></div>
 
+<!-- Paskutiniai veiksmai -->
 <div class="recent">
   <h4>Paskutiniai veiksmai</h4>
   <div id="recent-actions" class="rlist"></div>
 </div>
 
-<!-- Modal -->
+<!-- Modal (įrašyti pacientą) -->
 <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="modal" role="document" id="modal">
     <h3 id="modal-title">Įrašyti pacientą</h3>
     <div class="hint" id="modal-subtitle">Kol pildote duomenis, ši lova pažymėta kaip „rezervuota“.</div>
+
     <div class="field">
       <label for="fld-name">Pacientas</label>
       <input type="text" id="fld-name" placeholder="Vardas Pavardė" />
     </div>
+
+    <!-- Triažas: tik mygtukai -->
     <div class="field">
       <label>Triažo kategorija</label>
       <input type="hidden" id="fld-triage" />
@@ -128,15 +227,19 @@
         <div class="chip chip-5" data-t="5">5</div>
       </div>
     </div>
+
     <div class="field">
       <label for="fld-doctor">Gydytojas</label>
       <select id="fld-doctor"></select>
     </div>
+
     <div class="field">
       <label for="fld-comment">Komentaras</label>
       <textarea id="fld-comment" placeholder="Trumpas komentaras…"></textarea>
     </div>
+
     <div class="mini" id="reserve-status" style="display:none;font-size:11px;color:#6b7280;">Rezervuojama…</div>
+
     <div class="actions">
       <button class="btn danger" id="btn-cancel">Atšaukti</button>
       <button class="btn primary" id="btn-confirm" disabled>Patvirtinti</button>
@@ -144,18 +247,21 @@
   </div>
 </div>
 
+<!-- Undo juosta -->
 <div class="undo-bar" id="undoBar">
   <span id="undoMsg">Įrašyta. </span>
   <span class="link" id="undoLink">Atšaukti</span>
   <span class="timer" id="undoTimer">(10s)</span>
 </div>
 
+<!-- Custom context menu -->
 <div id="ctxMenu" class="ctx-menu" role="menu" aria-hidden="true">
   <div class="ctx-list">
     <div class="ctx-item" id="ctxDischarge">Išrašyti pacientą</div>
   </div>
 </div>
 
+<!-- Confirm popover -->
 <div id="confirmPop" class="confirm-pop" role="dialog" aria-hidden="true">
   <div class="body">
     <div class="title">Ar tikrai norite ištrinti?</div>
@@ -167,80 +273,36 @@
 </div>
 
 <script>
-  // ------- Helpers -------
-  function getUserDisplayName(){ return (document.getElementById('fld-username')?.value || '').trim(); }
-
-  // ------- Username badge -------
-  (function(){
-    let savedName = "";
-    const el = document.getElementById("fld-username");
-    const badge = document.getElementById("user-badge");
-    const bText = document.getElementById("user-badge-text");
-    const bIcon = document.getElementById("user-badge-icon");
-    function setBadge(state){
-      badge.classList.remove("b-ok","b-warn","b-muted","blink");
-      if(state==="ok"){ badge.classList.add("b-ok"); bText.textContent="Patvirtinta"; bIcon.textContent="✓"; }
-      else if(state==="warn"){ badge.classList.add("b-warn"); bText.textContent="Nepatvirtinta"; bIcon.textContent="!"; }
-      else { badge.classList.add("b-muted"); bText.textContent="Neįvesta"; bIcon.textContent="•"; }
-    }
-    function refreshState(){
-      const v = (el.value||"").trim();
-      if(!v){ setBadge("muted"); return; }
-      setBadge(v===savedName ? "ok" : "warn");
-    }
-    function saveNow(){
-      const v = (el.value||"").trim();
-      if(!v || v===savedName) { refreshState(); return; }
-      google.script.run.withSuccessHandler(()=>{
-        savedName = v; setBadge("ok"); badge.classList.add("blink"); setTimeout(()=>badge.classList.remove("blink"), 650);
-      }).setUsername(v);
-    }
-    google.script.run.withSuccessHandler(function(stored){
-      savedName = stored||""; el.value = savedName; refreshState();
-    }).getUsername();
-    el.addEventListener("input", refreshState);
-    el.addEventListener("blur", saveNow);
-    el.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); saveNow(); } });
-  })();
-
-  // ------- State -------
+  // ------- Būsena -------
   let currentData=null;
   let reservation={ bedLabel:null, keepAliveTimer:null, ok:false };
   let refreshTimer=null;
   let lastUndoToken=null, undoCountdown=null;
   let dragging=false, dragFrom=null;
+
+  // context menu state
   let ctxTargetBed=null, ctxX=0, ctxY=0;
   let confirmTargetBed=null;
+
   function formatTime(d){ return new Date(d).toLocaleTimeString(); }
 
-  // ------- Fetch + render -------
+  // ------- Duomenys + render -------
   function fetchAllAndRender(){
-    const actor = getUserDisplayName();
     google.script.run
-      .withFailureHandler(err => {
-        console.error('sidebarGetAll failed:', err);
-        document.getElementById('zones').innerHTML = '<div style="padding:8px;color:#6b7280">Nepavyko nuskaityti duomenų…</div>';
-      })
-      .withSuccessHandler(res => {
-        if(!res || !res.zonesPayload){
-          document.getElementById('zones').innerHTML = '<div style="padding:8px;color:#6b7280">Nėra duomenų…</div>';
-          document.getElementById('last-updated').textContent = '';
-          return;
-        }
-        const { zonesPayload, doctors = [], recent = [], now = new Date() } = res;
-        currentData = zonesPayload;
+      .withSuccessHandler(({zonesPayload, doctors, recent, now})=>{
+        currentData=zonesPayload;
         renderZones(zonesPayload);
         populateDoctors(doctors);
-        renderRecent(recent);
-        document.getElementById("last-updated").textContent = "Atnaujinta: " + new Date(now).toLocaleTimeString();
+        renderRecent(recent || []);
+        document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
       })
-      .sidebarGetAll({ actor });
+      .sidebarGetAll();
   }
 
   function renderZones(data){
-    if(!data || !data.beds) return;
     const zonasDiv=document.getElementById("zones");
     zonasDiv.innerHTML="";
+
     const amb = Array.from({length:15},(_,i)=>`AMB${i+1}`);
     const layout={
       "Zona IT":[["IT1","IT2"]],
@@ -251,78 +313,113 @@
       "Zona 5":[["13","14","15","16","17","121A","121B","IZO"]],
       "Ambulatorija":[amb.slice(0,8), amb.slice(8)]
     };
+
     const allBeds=Object.values(data.beds).flatMap(z=>z.beds);
+
     Object.entries(layout).forEach(([zoneName,rows])=>{
       const zoneBeds=rows.flat().map(l=>allBeds.find(b=>b.label===l)).filter(Boolean);
       const occCount=zoneBeds.filter(b=>b.occupied||b.reservedByOther||b.reservedByMe).length;
       const occRatio=zoneBeds.length?(occCount/zoneBeds.length):0;
+
       const zoneEl=document.createElement("div"); zoneEl.className="zone";
       const header=document.createElement("div"); header.className="zone-header";
       const title=document.createElement("div"); title.className="zone-title"; title.textContent=zoneName+" – "+Math.round(occRatio*100)+"%";
       const nurse=document.createElement("div"); nurse.className="nurse"; nurse.textContent="Slaug: "+(data.nurses[zoneName]||"Nenurodyta");
       header.appendChild(title); header.appendChild(nurse);
+
       const progress=document.createElement("div"); progress.className="progress";
       const fill=document.createElement("div"); fill.className="progress-fill"; fill.style.width=(occRatio*100).toFixed(0)+"%";
       progress.appendChild(fill);
+
       const rowsEl=document.createElement("div"); rowsEl.className="bed-rows";
       rows.forEach(r=>{
         const rowEl=document.createElement("div"); rowEl.className="bed-row";
         r.forEach(label=>{
           const b=allBeds.find(x=>x.label===label); if(!b) return;
           const el=document.createElement("div"); el.className="bed"; el.textContent=b.label;
-          if (b.occupied && b.patient) el.title = b.patient;
-          else if (b.reservedByOther) el.title = "Rezervuota kito naudotojo";
-          else if (b.reservedByMe) { el.title = "Jūsų rezervuota"; el.onclick=()=>openModal(b.label,true); }
-          else el.title = "Laisva";
+          // Tooltip (hover)
+          if (b.occupied && b.patient) {
+            el.title = b.patient;                 // rodys paciento vardą/pavardę
+          } else if (b.reservedByOther) {
+            el.title = "Rezervuota kito naudotojo";
+          } else if (b.reservedByMe) {
+            el.title = "Jūsų rezervuota";
+          } else {
+            el.title = "Laisva";
+          }
+
+
+          // Drag start tik užimtom
           if(b.occupied){
-            el.classList.add("occupied","draggable"); el.setAttribute("draggable","true");
+            el.classList.add("occupied","draggable");
+            el.setAttribute("draggable","true");
             el.addEventListener("dragstart",(ev)=>{
               dragging=true; dragFrom=b.label;
               if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
               el.classList.add("dragging");
               ev.dataTransfer.setData("text/plain", b.label);
               ev.dataTransfer.effectAllowed="move";
+              hideCtxMenu(); hideConfirm(); // jei meniu atidarytas
             });
             el.addEventListener("dragend", ()=>{
               dragging=false; dragFrom=null; el.classList.remove("dragging");
               if(!reservation.bedLabel && !refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
               document.querySelectorAll(".bed.drop-ok,.bed.swap-ok,.bed.drop-no").forEach(x=>x.classList.remove("drop-ok","swap-ok","drop-no"));
             });
+
+            // swap-on-occupied
             el.addEventListener("dragover",(ev)=>{
               if(!dragging || !dragFrom || dragFrom===b.label) return;
               const fromIsAmb = dragFrom.startsWith('AMB');
               const toIsAmb   = b.label.startsWith('AMB');
               const allowedSwap = (fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb);
-              if(allowedSwap){ ev.preventDefault(); el.classList.add("swap-ok"); }
+              if(allowedSwap){
+                ev.preventDefault();
+                el.classList.add("swap-ok");
+              }
             });
             el.addEventListener("dragleave",()=>{ el.classList.remove("swap-ok"); });
             el.addEventListener("drop",(ev)=>{
               ev.preventDefault(); el.classList.remove("swap-ok");
               const from=ev.dataTransfer.getData("text/plain")||dragFrom; const to=b.label;
               if(!from || from===to) return;
-              const fromIsAmb = from.startsWith('AMB'); const toIsAmb = to.startsWith('AMB');
+              const fromIsAmb = from.startsWith('AMB');
+              const toIsAmb   = to.startsWith('AMB');
               if ((fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb)) {
                 google.script.run.withSuccessHandler(res=>{
                   if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko sukeisti."); return; }
                   showUndo(res.undoToken,"Lovos sukeistos. "); fetchAllAndRender();
-                }).swapBeds({bedA:from, bedB:to, userDisplayName:getUserDisplayName()});
+                }).swapBeds({bedA:from, bedB:to});
               }
             });
+
+            // Dešinysis klavišas: atidaryti custom meniu
             el.addEventListener('contextmenu', (ev)=>{
-              ev.preventDefault(); showCtxMenu(b.label, ev.clientX, ev.clientY);
+              ev.preventDefault();
+              showCtxMenu(b.label, ev.clientX, ev.clientY);
             });
+
           } else if (b.reservedByOther){
-            el.classList.add("reserved");
+            el.classList.add("reserved"); el.title="Rezervuota kito naudotojo";
           } else if (b.reservedByMe){
-            el.classList.add("reserved");
+            el.classList.add("reserved"); el.title="Jūsų rezervuota";
+            el.onclick=()=>openModal(b.label,true);
+            el.addEventListener('contextmenu',(ev)=>ev.preventDefault()); // jokių meniu
           } else {
+            // Laisvos: priima drop (move) ir click (rezervuoti/įrašyti)
             el.classList.add("free");
             el.addEventListener("dragover",(ev)=>{
               if(!dragging || !dragFrom || dragFrom===b.label){ el.classList.add("drop-no"); return; }
-              const fromIsAmb = dragFrom.startsWith('AMB'); const toIsAmb = b.label.startsWith('AMB');
+              const fromIsAmb = dragFrom.startsWith('AMB');
+              const toIsAmb   = b.label.startsWith('AMB');
               const allowed = (fromIsAmb && toIsAmb) || (!fromIsAmb && !toIsAmb) || (fromIsAmb && !toIsAmb);
-              if(allowed){ ev.preventDefault(); el.classList.add("drop-ok"); el.classList.remove("drop-no"); ev.dataTransfer.dropEffect="move"; }
-              else { el.classList.add("drop-no"); }
+              if(allowed){
+                ev.preventDefault();
+                el.classList.add("drop-ok"); el.classList.remove("drop-no");
+                ev.dataTransfer.dropEffect="move";
+              } else {
+                el.classList.add("drop-no");
+              }
             });
             el.addEventListener("dragleave",()=>{ el.classList.remove("drop-ok","drop-no"); });
             el.addEventListener("drop",(ev)=>{
@@ -333,15 +430,17 @@
                 if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko perkelti."); return; }
                 showUndo(res.undoToken,"Pacientas perkeltas. ");
                 fetchAllAndRender();
-              }).movePatient({fromBed:from,toBed:to, userDisplayName:getUserDisplayName()});
+              }).movePatient({fromBed:from,toBed:to});
             });
-            el.onclick=()=>{ handleFreeBedClick(b.label); };
+            el.onclick=()=>{ hideCtxMenu(); hideConfirm(); handleFreeBedClick(b.label); };
             el.addEventListener('contextmenu',(ev)=>ev.preventDefault());
           }
+
           rowEl.appendChild(el);
         });
         rowsEl.appendChild(rowEl);
       });
+
       zoneEl.appendChild(header); zoneEl.appendChild(progress); zoneEl.appendChild(rowsEl);
       zonasDiv.appendChild(zoneEl);
     });
@@ -357,6 +456,7 @@
     });
   }
 
+  // ------- Recent -------
   function renderRecent(list){
     const box=document.getElementById('recent-actions');
     if(!box) return;
@@ -374,28 +474,36 @@
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
   }
 
-  // ------- Reserve flow -------
+  // ------- Rezervavimas -------
   function handleFreeBedClick(bedLabel){ openModal(bedLabel,false); }
+
   function openModal(bedLabel, alreadyMine){
     reservation.bedLabel=bedLabel; reservation.ok=false;
+    document.getElementById("modal-title").textContent="Įrašyti pacientą";
     document.getElementById("modal-backdrop").style.display="flex";
     if(refreshTimer){ clearInterval(refreshTimer); refreshTimer=null; }
+
+    // Auto-focus + Tab seka: Vardas -> Gydytojas
     const nameInput=document.getElementById("fld-name");
     const doctorSel=document.getElementById("fld-doctor");
     setTimeout(()=>nameInput.focus(),0);
     nameInput.addEventListener("keydown",(e)=>{ if(e.key==="Tab" && !e.shiftKey){ e.preventDefault(); doctorSel.focus(); }});
+
     setFormEnabled(false); showReserveStatus(true);
+
     if(alreadyMine){
       reservation.ok=true; setFormEnabled(true); showReserveStatus(false); startKeepAlive(bedLabel); return;
     }
+
     google.script.run.withSuccessHandler(res=>{
       if(res && res.ok){
         reservation.ok=true; setFormEnabled(true); showReserveStatus(false); startKeepAlive(bedLabel);
       }else{
         showReserveStatus(false); alert((res && res.msg)?res.msg:"Nepavyko rezervuoti lovos."); closeModal();
       }
-    }).reserveBed({ bedLabel, actor: getUserDisplayName() });
+    }).reserveBed(bedLabel);
   }
+
   function closeModal(){
     document.getElementById("modal-backdrop").style.display="none";
     if(!refreshTimer) refreshTimer=setInterval(fetchAllAndRender,10000);
@@ -408,16 +516,12 @@
   function showReserveStatus(show){ document.getElementById("reserve-status").style.display=show?"block":"none"; }
   function startKeepAlive(bedLabel){
     stopKeepAlive();
-    reservation.keepAliveTimer=setInterval(()=>{ google.script.run.keepAliveReservation({ bedLabel, actor:getUserDisplayName() }); },60000);
+    reservation.keepAliveTimer=setInterval(()=>{ google.script.run.keepAliveReservation(bedLabel); },60000);
   }
   function stopKeepAlive(){ if(reservation.keepAliveTimer){ clearInterval(reservation.keepAliveTimer); reservation.keepAliveTimer=null; } }
-  function releaseReservation(){
-    stopKeepAlive();
-    if(!reservation.bedLabel) return;
-    google.script.run.releaseReservation({ bedLabel: reservation.bedLabel, actor:getUserDisplayName() });
-    reservation.bedLabel=null;
-  }
+  function releaseReservation(){ stopKeepAlive(); if(!reservation.bedLabel) return; google.script.run.releaseReservation(reservation.bedLabel); reservation.bedLabel=null; }
 
+  // Triažo chip'ai + 1–5
   document.addEventListener('click',(e)=>{
     if(e.target.classList && e.target.classList.contains('chip')){
       const v=e.target.getAttribute('data-t');
@@ -427,6 +531,7 @@
     }
   });
   document.addEventListener('keydown',(e)=>{
+    // global esc -> uždaryti meniu/confirm
     if(e.key==="Escape"){ hideCtxMenu(); hideConfirm(); }
     if(document.getElementById("modal-backdrop").style.display!=="flex") return;
     if(e.key>="1" && e.key<="5"){
@@ -442,6 +547,7 @@
     }
   });
 
+  // Mygtukai
   document.getElementById("btn-cancel").addEventListener("click", ()=>{
     closeModal(); releaseReservation(); clearForm(); fetchAllAndRender();
   });
@@ -449,8 +555,10 @@
     if(!reservation.ok) return;
     const btn=document.getElementById("btn-confirm");
     btn.textContent="Įrašoma…"; btn.disabled=true;
+
     const triageVal=document.getElementById("fld-triage").value;
     const isAmb = reservation.bedLabel && reservation.bedLabel.startsWith('AMB');
+
     const payload={
       bedLabel:reservation.bedLabel,
       patientName:document.getElementById("fld-name").value.trim(),
@@ -464,12 +572,13 @@
     if(!isAmb && !payload.triage){
       alert("Pasirinkite triažo kategoriją (1–5)."); btn.textContent="Patvirtinti"; btn.disabled=false; return;
     }
+
     google.script.run.withSuccessHandler(res=>{
       btn.textContent="Patvirtinti"; btn.disabled=false;
       if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko įrašyti į lentą."); return; }
       closeModal(); releaseReservation(); clearForm();
       showUndo(res.undoToken,"Įrašyta. "); fetchAllAndRender();
-    }).assignBed({ ...payload, userDisplayName:getUserDisplayName(), actor:getUserDisplayName() });
+    }).assignBed(payload);
   });
 
   function clearForm(){
@@ -480,6 +589,7 @@
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
   }
 
+  // Undo
   function showUndo(token,msg){
     lastUndoToken=token;
     const bar=document.getElementById("undoBar");
@@ -508,9 +618,10 @@
     }).undoAssign(lastUndoToken);
   });
 
-  // ------- Context menu & Confirm -------
+  // ------- Context menu & Confirm popover -------
   const ctxEl = document.getElementById('ctxMenu');
   const confirmEl = document.getElementById('confirmPop');
+
   function clampPos(x,y,box){
     const w = box.offsetWidth || 220, h = box.offsetHeight || 70;
     const maxX = window.innerWidth - w - 8;
@@ -525,6 +636,7 @@
     ctxEl.style.left = p.x+'px'; ctxEl.style.top = p.y+'px';
   }
   function hideCtxMenu(){ ctxEl.style.display='none'; ctxTargetBed=null; }
+
   function showConfirm(bed, x, y){
     confirmTargetBed = bed;
     confirmEl.style.display='block';
@@ -533,35 +645,53 @@
   }
   function hideConfirm(){ confirmEl.style.display='none'; confirmTargetBed=null; }
 
+  // click on menu item -> open confirm at same spot
   document.getElementById('ctxDischarge').addEventListener('click', (e)=>{
-    e.stopPropagation();
-    if(!ctxTargetBed){ hideCtxMenu(); return; }
-    const bed = ctxTargetBed;
-    hideCtxMenu();
-    setTimeout(()=>{ showConfirm(bed, ctxX, ctxY); }, 0);
-  });
+  e.stopPropagation();                      // <- NEleisti „global click“ uždaryti tuoj pat
+  if(!ctxTargetBed){ hideCtxMenu(); return; }
+  const bed = ctxTargetBed;
+  hideCtxMenu();
+  setTimeout(()=>{                           // <- parodyti po šio click ciklo
+    showConfirm(bed, ctxX, ctxY);
+  }, 0);
+});
+
+
+  // confirm buttons
   document.getElementById('confirmYes').addEventListener('click', ()=>{
-    const bed = confirmTargetBed; hideConfirm();
-    if(!bed) return;
-    google.script.run.withSuccessHandler(res=>{
-      if(!res || !res.ok){ alert((res && res.msg) ? res.msg : "Nepavyko išrašyti."); return; }
+  const bed = confirmTargetBed; hideConfirm();
+  if(!bed) return;
+
+  google.script.run
+    .withSuccessHandler(res=>{
+      if(!res || !res.ok){
+        alert((res && res.msg) ? res.msg : "Nepavyko išrašyti.");
+        return;
+      }
+      // sėkmė
       showUndo(res.undoToken, res.msg || "Pacientas išrašytas. ");
       fetchAllAndRender();
-    }).dischargePatient({ bedLabel: bed, reason: "", userDisplayName:getUserDisplayName() });
-  });
+    })
+    .dischargePatient({ bedLabel: bed, reason: "" });
+});
+
   document.getElementById('confirmNo').addEventListener('click', ()=>{ hideConfirm(); });
 
+  // click outside closes
   document.addEventListener('click', (e)=>{
-    if (e.target.closest('#ctxMenu')) return;
-    if (!e.target.closest('#confirmPop')) hideConfirm();
-    hideCtxMenu();
-  });
+  if (e.target.closest('#ctxMenu')) return;  // <- spustelėjimas meniu neturi uždaryti confirm
+  if (!e.target.closest('#confirmPop')) hideConfirm();
+  hideCtxMenu();
+});
+
   window.addEventListener('scroll', ()=>{ hideCtxMenu(); hideConfirm(); }, true);
   window.addEventListener('resize', ()=>{ hideCtxMenu(); hideConfirm(); });
 
+  // Start
   function sidebarInit(){ fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
-  function sidebarGetAll(){}
+  function sidebarGetAll(){} // placeholder
   sidebarInit();
 </script>
+
 </body>
 </html>
