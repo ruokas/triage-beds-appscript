@@ -570,6 +570,22 @@
   // ------- Rezervavimas -------
   function handleFreeBedClick(bedLabel){ openModal(bedLabel,false); }
 
+  let modalTabHandlerAttached = false;
+  let modalTabFocusTarget = null;
+  const modalTabHandler = (e)=>{
+    if(e.key==="Tab" && !e.shiftKey){
+      e.preventDefault();
+      if(modalTabFocusTarget){ modalTabFocusTarget.focus(); }
+    }
+  };
+  function ensureModalTabHandler(nameInput, doctorSel){
+    modalTabFocusTarget = doctorSel || null;
+    if(!modalTabHandlerAttached && nameInput){
+      nameInput.addEventListener("keydown", modalTabHandler);
+      modalTabHandlerAttached = true;
+    }
+  }
+
   function openModal(bedLabel, alreadyMine){
     reservation.bedLabel=bedLabel; reservation.ok=false;
     document.getElementById("modal-title").textContent="Įrašyti pacientą";
@@ -581,21 +597,39 @@
     // Auto-focus + Tab seka: Vardas -> Gydytojas
     const nameInput=document.getElementById("fld-name");
     const doctorSel=document.getElementById("fld-doctor");
-    setTimeout(()=>nameInput.focus(),0);
-    nameInput.addEventListener("keydown",(e)=>{ if(e.key==="Tab" && !e.shiftKey){ e.preventDefault(); doctorSel.focus(); }});
+    ensureModalTabHandler(nameInput, doctorSel);
+    const scheduleNameFocus=()=>{
+      if(!nameInput || !isModalOpen()) return;
+      setTimeout(()=>{
+        if(isModalOpen()){ nameInput.focus(); }
+      },0);
+    };
 
     setFormEnabled(false); showReserveStatus(true);
 
     if(alreadyMine){
-      reservation.ok=true; setFormEnabled(true); showReserveStatus(false); startKeepAlive(bedLabel); return;
+      reservation.ok=true;
+      setFormEnabled(true);
+      showReserveStatus(false);
+      scheduleNameFocus();
+      startKeepAlive(bedLabel);
+      return;
     }
 
     const userName = getLocalUserName();
     google.script.run.withSuccessHandler(res=>{
       if(res && res.ok){
-        reservation.ok=true; setFormEnabled(true); showReserveStatus(false); startKeepAlive(bedLabel);
+        reservation.ok=true;
+        setFormEnabled(true);
+        showReserveStatus(false);
+        scheduleNameFocus();
+        startKeepAlive(bedLabel);
       }else{
-        showReserveStatus(false); alert((res && res.msg)?res.msg:"Nepavyko rezervuoti lovos."); closeModal();
+        reservation.ok=false;
+        setFormEnabled(true);
+        showReserveStatus(false);
+        alert((res && res.msg)?res.msg:"Nepavyko rezervuoti lovos.");
+        if(isModalOpen()){ scheduleNameFocus(); }
       }
     }).reserveBed({ bedLabel, userName });
   }
