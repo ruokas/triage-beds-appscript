@@ -296,6 +296,64 @@ function _getRecentActions_(limit) {
   })).reverse();
 }
 
+/**
+ * Grąžina paskutinio _logAction_({ action: 'ASSIGN' | 'ASSIGN_AMB' }) įrašo laiką pagal lovos žymuo.
+ * @param {string[]} bedLabels - visi lovų identifikatoriai, kuriuos naudojame bedsPayload objektuose
+ * @return {Object<string,string|null>} - ISO eilutė arba null, jei nieko nerasta
+ */
+function _getLatestAssignTimes_(bedLabels) {
+  const out = {};
+  const labels = Array.isArray(bedLabels)
+    ? Array.from(new Set(bedLabels.filter(label => typeof label === 'string' && label)))
+    : [];
+
+  labels.forEach(label => { out[label] = null; });
+  if (!labels.length) return out;
+
+  const sh = _sheet(LOG_SHEET);
+  if (!sh) return out;
+
+  const last = sh.getLastRow();
+  if (last < 2) return out;
+
+  const timeIdx = LOG_HEADERS.indexOf('TimeISO');
+  const actionIdx = LOG_HEADERS.indexOf('Action');
+  const bedIdx = LOG_HEADERS.indexOf('Bed');
+  if (timeIdx === -1 || actionIdx === -1 || bedIdx === -1) return out;
+
+  const rangeHeight = last - 1;
+  const logValues = sh.getRange(2, 1, rangeHeight, LOG_HEADERS.length).getValues();
+  const remaining = new Set(labels);
+
+  for (let i = logValues.length - 1; i >= 0 && remaining.size > 0; i--) {
+    const row = logValues[i];
+    const action = String(row[actionIdx] || '').trim();
+    if (action !== 'ASSIGN' && action !== 'ASSIGN_AMB') continue;
+
+    const bedLabel = String(row[bedIdx] || '').trim();
+    if (!bedLabel || !remaining.has(bedLabel)) continue;
+
+    const rawTs = row[timeIdx];
+    let iso = null;
+    if (rawTs instanceof Date) {
+      iso = rawTs.toISOString();
+    } else if (rawTs) {
+      const parsed = new Date(rawTs);
+      if (!isNaN(parsed.getTime())) iso = parsed.toISOString();
+    }
+
+    out[bedLabel] = iso;
+    remaining.delete(bedLabel);
+  }
+
+  // Užtikriname, kad visi prašyti lovų žymenys būtų grąžinti, net jei nebuvo priskyrimo
+  labels.forEach(label => {
+    if (!(label in out)) out[label] = null;
+  });
+
+  return out;
+}
+
 /** Užimtumas (LENTA F; AMB M) ir slaugytojos, pac. vardas */
 function getLiveZoneData(userName) {
   const sh = _sheet(SHEET_LENTA);
@@ -343,18 +401,21 @@ function getLiveZoneData(userName) {
   }
 
   // Sukuriam payloadą su pacientu
+  const latestAssignMap = _getLatestAssignTimes_(allBedLabels);
   const bedsPayload = {};
   Object.keys(ZONOS).forEach(z => {
     bedsPayload[z] = {
       beds: ZONOS[z].map(label => {
         const holder = reservationOwnersByLabel[label];
         const patient = patientByBed[label] || '';
+        const assignedAt = latestAssignMap[label] || null;
         return {
           label,
           occupied: !!patient,
           patient, // <— pridėta
           reservedByMe: !!(holder && holder === me),
-          reservedByOther: !!(holder && holder !== me)
+          reservedByOther: !!(holder && holder !== me),
+          assignedAt
         };
       })
     };

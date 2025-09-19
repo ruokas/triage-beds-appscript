@@ -41,6 +41,9 @@
     .bed.drop-ok{box-shadow:inset 0 0 0 2px var(--accent)}
     .bed.swap-ok{box-shadow:inset 0 0 0 2px #3b82f6}
     .bed.drop-no{opacity:.5}
+    .bed.wait-long{border-width:2px;border-color:#7f1d1d;box-shadow:0 0 0 2px rgba(127,29,29,.25);position:relative}
+    .bed.wait-long::after{content:'4h+';position:absolute;top:-6px;right:-6px;background:#b91c1c;color:#fff;font-size:9px;padding:1px 4px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    @media(max-width:640px){.bed.wait-long::after{top:-4px;right:-4px;font-size:8px}}
 
     #last-updated{font-size:11px;color:var(--muted);margin:6px 2px 8px;text-align:right}
 
@@ -321,6 +324,14 @@
   let confirmTargetBed=null;
 
   function formatTime(d){ return new Date(d).toLocaleTimeString(); }
+  const WAIT_ALERT_MINUTES = 240;
+  function calcWaitMinutes(isoString){
+    if(!isoString) return null;
+    const dt = new Date(isoString);
+    if(Number.isNaN(dt.getTime())) return null;
+    const diff = Math.floor((Date.now() - dt.getTime())/60000);
+    return diff < 0 ? 0 : diff;
+  }
 
   // ------- Duomenys + render -------
   function fetchAllAndRender(){
@@ -402,15 +413,17 @@
         r.forEach(label=>{
           const b=bedMap.get(label); if(!b) return;
           const el=document.createElement("div"); el.className="bed"; el.textContent=b.label;
+          const waitMinutes = calcWaitMinutes(b && b.assignedAt);
+          let tooltip="";
           // Tooltip (hover)
-          if (b.occupied && b.patient) {
-            el.title = b.patient;                 // rodys paciento vardą/pavardę
+          if (b.occupied) {
+            tooltip = b.patient ? b.patient : "Užimta";
           } else if (b.reservedByOther) {
-            el.title = "Rezervuota kito naudotojo";
+            tooltip = "Rezervuota kito naudotojo";
           } else if (b.reservedByMe) {
-            el.title = "Jūsų rezervuota";
+            tooltip = "Jūsų rezervuota";
           } else {
-            el.title = "Laisva";
+            tooltip = "Laisva";
           }
 
 
@@ -465,9 +478,9 @@
             });
 
           } else if (b.reservedByOther){
-            el.classList.add("reserved"); el.title="Rezervuota kito naudotojo";
+            el.classList.add("reserved");
           } else if (b.reservedByMe){
-            el.classList.add("reserved"); el.title="Jūsų rezervuota";
+            el.classList.add("reserved");
             el.onclick=()=>openModal(b.label,true);
             el.addEventListener('contextmenu',(ev)=>ev.preventDefault()); // jokių meniu
           } else {
@@ -499,6 +512,21 @@
             });
             el.onclick=()=>{ hideCtxMenu(); hideConfirm(); handleFreeBedClick(b.label); };
             el.addEventListener('contextmenu',(ev)=>ev.preventDefault());
+          }
+
+          if(waitMinutes!==null && b.occupied){
+            el.setAttribute("data-wait-minutes", String(waitMinutes));
+            if(waitMinutes>WAIT_ALERT_MINUTES){
+              el.classList.add("wait-long");
+            }
+            const waitText = `Laukia ${waitMinutes} min.`;
+            tooltip = tooltip ? `${tooltip}\n${waitText}` : waitText;
+          }
+
+          if(tooltip){
+            el.title = tooltip;
+          } else {
+            el.removeAttribute("title");
           }
 
           rowEl.appendChild(el);
