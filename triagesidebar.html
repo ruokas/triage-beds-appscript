@@ -749,6 +749,11 @@
   function openModal(bedLabel, alreadyMine){
     reservation.bedLabel=bedLabel; reservation.ok=false;
     document.getElementById("modal-title").textContent="Įrašyti pacientą";
+    
+    // Set the bed field value immediately
+    const bedField = document.getElementById("fld-bed");
+    if(bedField) { bedField.value = bedLabel; }
+    
     const backdrop=document.getElementById("modal-backdrop");
     backdrop.style.display="flex";
     backdrop.setAttribute("aria-hidden","false");
@@ -1101,6 +1106,7 @@
     document.getElementById("fld-triage").value="";
     document.getElementById("fld-doctor").value="";
     document.getElementById("fld-comment").value="";
+    document.getElementById("fld-bed").value=""; // Clear bed field when canceling
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     const box=document.getElementById('doctor-list');
     if(box){ box.querySelectorAll('.doc-btn').forEach(b=>b.classList.remove('active')); }
