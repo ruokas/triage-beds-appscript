@@ -26,6 +26,8 @@
     .progress-fill{background:linear-gradient(90deg,#22c55e,#86efac);height:100%;width:0%;transition:width .25s ease}
     .bed-rows{display:flex;flex-direction:column;gap:4px}
     .bed-row{display:flex;flex-wrap:wrap;gap:4px}
+    .bed-row.amb-grid{display:grid;grid-template-columns:repeat(5,minmax(52px,1fr));gap:4px}
+    @media(max-width:480px){ .bed-row.amb-grid{grid-template-columns:repeat(4,minmax(52px,1fr));} }
 
     .bed{
       padding:4px 7px;
@@ -496,7 +498,10 @@
 
       const rowsEl=document.createElement("div"); rowsEl.className="bed-rows";
       rows.forEach(r=>{
-        const rowEl=document.createElement("div"); rowEl.className="bed-row";
+        const rowEl=document.createElement("div");
+        // Ambulatorijos eilėmis perteikiam kaip tolygų grid, kad neliktų "skylių"
+        const isAmb = zoneName === 'Ambulatorija';
+        rowEl.className = isAmb ? 'bed-row amb-grid' : 'bed-row';
         r.forEach(label=>{
           const b=bedMap.get(label); if(!b) return;
           const el=document.createElement("div"); el.className="bed"; el.textContent=b.label;
