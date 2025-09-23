@@ -32,7 +32,7 @@ const UNDO_TTL_SEC = 10 * 60;
 
 // Veiksmų žurnalas
 const LOG_SHEET = 'VEIKSMŲ ŽURNALAS';
-const LOG_HEADERS = ['TimeISO','User','Action','Summary','From','To','Bed','Patient','Doctor','Triage','Status','Comment'];
+const LOG_HEADERS = ['Laikas','Naudotojas','Veiksmas','Aprašymas','Iš','Į','Lova','Pacientas','Gydytojas','Triažas','Komentaras'];
 
 /** Zonos (įskaitant Ambulatoriją) */
 const AMB_BEDS = Array.from({length: (AMB.lastRow - AMB.firstRow + 1)}, (_,i)=>`AMB${i+1}`);
@@ -249,10 +249,35 @@ function _logAction_(o) {
     const fallbackName = (o && o.userName) ? o.userName : (o && o.userTag ? String(o.userTag).split('#')[0] : '');
     const identity = (o && o.userIdentity) ? o.userIdentity : _resolveUserIdentity_(fallbackName);
     const userCell = identity && identity.display ? identity.display : 'Nenurodytas';
+    
+    // Format time as "2025-09-23 16:38"
+    const now = new Date();
+    const formattedTime = now.getFullYear() + '-' + 
+      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(now.getDate()).padStart(2, '0') + ' ' + 
+      String(now.getHours()).padStart(2, '0') + ':' + 
+      String(now.getMinutes()).padStart(2, '0');
+    
+    // Translate action to Lithuanian
+    const actionTranslations = {
+      'ASSIGN': 'Priskirta',
+      'ASSIGN_AMB': 'Priskirta AMB',
+      'UNDO_ASSIGN': 'Atšaukta priskyrimas',
+      'UNDO_MOVE': 'Atšauktas perkėlimas',
+      'MOVE_AMB': 'Perkelta AMB',
+      'MOVE': 'Perkelta',
+      'MOVE_AMB_TO_LENTA': 'Perkelta AMB→Salė',
+      'SWAP_AMB': 'Sukeista AMB',
+      'SWAP': 'Sukeista',
+      'DISCHARGE_AMB': 'Išrašyta AMB',
+      'DISCHARGE': 'Išrašyta'
+    };
+    const translatedAction = actionTranslations[o.action] || o.action || '';
+    
     const row = [
-      new Date().toISOString(),
+      formattedTime,
       userCell,
-      o.action || '',
+      translatedAction,
       o.summary || '',
       o.from || '',
       o.to || '',
@@ -260,7 +285,6 @@ function _logAction_(o) {
       o.patient || '',
       o.doctor || '',
       o.triage || '',
-      o.status || '',
       o.comment || ''
     ];
     sh.appendRow(row);
@@ -294,7 +318,7 @@ function _getRecentActions_(limit) {
   const values = sh.getRange(start, 1, n, LOG_HEADERS.length).getValues();
   return values.map(r => ({
     ts: r[0], user: r[1], action: r[2], summary: r[3],
-    from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], status: r[10], comment: r[11]
+    from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], comment: r[10]
   })).reverse();
 }
 
@@ -318,9 +342,9 @@ function _getLatestAssignTimes_(bedLabels) {
   const last = sh.getLastRow();
   if (last < 2) return out;
 
-  const timeIdx = LOG_HEADERS.indexOf('TimeISO');
-  const actionIdx = LOG_HEADERS.indexOf('Action');
-  const bedIdx = LOG_HEADERS.indexOf('Bed');
+  const timeIdx = LOG_HEADERS.indexOf('Laikas');
+  const actionIdx = LOG_HEADERS.indexOf('Veiksmas');
+  const bedIdx = LOG_HEADERS.indexOf('Lova');
   if (timeIdx === -1 || actionIdx === -1 || bedIdx === -1) return out;
 
   const rangeHeight = last - 1;
@@ -330,7 +354,7 @@ function _getLatestAssignTimes_(bedLabels) {
   for (let i = logValues.length - 1; i >= 0 && remaining.size > 0; i--) {
     const row = logValues[i];
     const action = String(row[actionIdx] || '').trim();
-    if (action !== 'ASSIGN' && action !== 'ASSIGN_AMB') continue;
+    if (action !== 'Priskirta' && action !== 'Priskirta AMB') continue;
 
     const bedLabel = String(row[bedIdx] || '').trim();
     if (!bedLabel || !remaining.has(bedLabel)) continue;
@@ -340,6 +364,7 @@ function _getLatestAssignTimes_(bedLabels) {
     if (rawTs instanceof Date) {
       iso = rawTs.toISOString();
     } else if (rawTs) {
+      // Handle formatted time "2025-09-23 16:38"
       const parsed = new Date(rawTs);
       if (!isNaN(parsed.getTime())) iso = parsed.toISOString();
     }
