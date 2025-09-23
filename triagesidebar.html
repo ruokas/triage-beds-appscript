@@ -254,7 +254,8 @@
       } catch (err) {
         console.warn("Nepavyko įrašyti naudotojo vardo", err);
       }
-    } else if (!name) {
+    } else {
+      // Always check localStorage when called without parameters to get latest value
       try {
         name = localStorage.getItem(USER_NAME_KEY) || "";
       } catch (err) {
@@ -280,7 +281,7 @@
 
   function saveNow(){
     const v = (el.value||"").trim();
-    if(!v || v===savedName) { refreshState(); return; }
+    if(v===savedName) { refreshState(); return; } // Only skip if value hasn't changed
     getLocalUserName({ value: v, syncField: true, highlight: true });
   }
 
