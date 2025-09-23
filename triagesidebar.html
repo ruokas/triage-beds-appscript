@@ -686,7 +686,7 @@
     const doctor = (document.getElementById("fld-doctor").value||"").trim();
     const triageVal = (document.getElementById("fld-triage").value||"").trim();
     const isAmb = reservation.bedLabel && reservation.bedLabel.startsWith('AMB');
-    const ready = !!(reservation.ok && hasName && doctor && (isAmb || triageVal));
+    const ready = !!(hasName && doctor && (isAmb || triageVal));
     btn.disabled = !ready;
   }
   function showReserveStatus(show){ document.getElementById("reserve-status").style.display=show?"block":"none"; }
@@ -749,7 +749,6 @@
   // Mygtukai
   document.getElementById("btn-cancel").addEventListener("click", cancelModal);
   document.getElementById("btn-confirm").addEventListener("click", ()=>{
-    if(!reservation.ok) return;
     const btn=document.getElementById("btn-confirm");
     btn.textContent="Įrašoma…"; btn.disabled=true;
 
