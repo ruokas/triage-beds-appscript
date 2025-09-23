@@ -80,6 +80,13 @@
     .icon-btn:hover{background:#f9fafb}
     .help-kbd{display:inline-block;border:1px solid #e5e7eb;border-bottom-width:2px;border-radius:6px;padding:0 6px;font-size:12px;background:#fff;margin:0 2px}
 
+  /* Gydytojų vieno paspaudimo sąrašas */
+  .doctor-list{display:flex;flex-wrap:wrap;gap:6px}
+  .doc-btn{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font-size:12px;cursor:pointer}
+  .doc-btn:hover{background:#f9fafb}
+  .doc-btn.active{background:var(--free-bg);color:var(--free);border-color:#81c38b;box-shadow:inset 0 0 0 2px rgba(34,197,94,.25)}
+  .doc-btn[disabled]{opacity:.6;cursor:not-allowed}
+
 
     /* Undo juosta */
     .undo-bar{position:fixed;right:12px;bottom:12px;display:none;gap:8px;align-items:center;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9500}
@@ -268,7 +275,8 @@
 
     <div class="field">
       <label for="fld-doctor">Gydytojas</label>
-      <select id="fld-doctor"></select>
+      <input type="hidden" id="fld-doctor" />
+      <div id="doctor-list" class="doctor-list"></div>
     </div>
 
     <div class="field">
@@ -540,12 +548,25 @@
   }
 
   function populateDoctors(list){
-    const sel=document.getElementById("fld-doctor");
-    const cur=sel.value; sel.innerHTML="";
-    const def=document.createElement("option"); def.value=""; def.textContent="— Pasirinkite gydytoją —"; sel.appendChild(def);
+    const hidden=document.getElementById("fld-doctor");
+    const box=document.getElementById("doctor-list");
+    if(!box || !hidden) return;
+    const cur=hidden.value;
+    box.innerHTML="";
     (list||[]).forEach(name=>{
-      const o=document.createElement("option"); o.value=name; o.textContent=name;
-      if(name===cur) o.selected=true; sel.appendChild(o);
+      const btn=document.createElement("button");
+      btn.type="button";
+      btn.className="doc-btn"+(name===cur?" active":"");
+      btn.textContent=name;
+      btn.addEventListener("click",()=>{
+        hidden.value=name;
+        // vizualiai pažymime aktyvų
+        box.querySelectorAll('.doc-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        // jei forma įjungta – galimai įjungti patvirtinimą
+        validateConfirmEnabled();
+      });
+      box.appendChild(btn);
     });
   }
 
@@ -578,8 +599,8 @@
       if(modalTabFocusTarget){ modalTabFocusTarget.focus(); }
     }
   };
-  function ensureModalTabHandler(nameInput, doctorSel){
-    modalTabFocusTarget = doctorSel || null;
+  function ensureModalTabHandler(nameInput){
+    modalTabFocusTarget = document.querySelector('#doctor-list .doc-btn') || null;
     if(!modalTabHandlerAttached && nameInput){
       nameInput.addEventListener("keydown", modalTabHandler);
       modalTabHandlerAttached = true;
@@ -596,8 +617,7 @@
 
     // Auto-focus + Tab seka: Vardas -> Gydytojas
     const nameInput=document.getElementById("fld-name");
-    const doctorSel=document.getElementById("fld-doctor");
-    ensureModalTabHandler(nameInput, doctorSel);
+    ensureModalTabHandler(nameInput);
     const scheduleNameFocus=()=>{
       if(!nameInput || !isModalOpen()) return;
       setTimeout(()=>{
@@ -613,6 +633,7 @@
       showReserveStatus(false);
       scheduleNameFocus();
       startKeepAlive(bedLabel);
+      validateConfirmEnabled();
       return;
     }
 
@@ -623,6 +644,7 @@
         setFormEnabled(true);
         showReserveStatus(false);
         scheduleNameFocus();
+        validateConfirmEnabled();
         startKeepAlive(bedLabel);
       }else{
         reservation.ok=false;
@@ -654,6 +676,18 @@
     ["fld-name","fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=!enabled;
     });
+    // taip pat įjungiame/išjungiame gydytojų mygtukus
+    document.querySelectorAll('#doctor-list .doc-btn').forEach(btn=>{ btn.disabled = !enabled; });
+  }
+
+  function validateConfirmEnabled(){
+    const btn=document.getElementById("btn-confirm"); if(!btn) return;
+    const hasName = (document.getElementById("fld-name").value||"").trim();
+    const doctor = (document.getElementById("fld-doctor").value||"").trim();
+    const triageVal = (document.getElementById("fld-triage").value||"").trim();
+    const isAmb = reservation.bedLabel && reservation.bedLabel.startsWith('AMB');
+    const ready = !!(reservation.ok && hasName && doctor && (isAmb || triageVal));
+    btn.disabled = !ready;
   }
   function showReserveStatus(show){ document.getElementById("reserve-status").style.display=show?"block":"none"; }
   function startKeepAlive(bedLabel){
@@ -684,6 +718,7 @@
       document.getElementById('fld-triage').value=v;
       document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
       e.target.classList.add('active');
+      validateConfirmEnabled();
     }
   });
   document.addEventListener('keydown',(e)=>{
@@ -750,6 +785,9 @@
     document.getElementById("fld-doctor").value="";
     document.getElementById("fld-comment").value="";
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    const box=document.getElementById('doctor-list');
+    if(box){ box.querySelectorAll('.doc-btn').forEach(b=>b.classList.remove('active')); }
+    validateConfirmEnabled();
   }
 
   // Undo
@@ -854,6 +892,12 @@
   function sidebarInit(){ fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
   function sidebarGetAll(){} // placeholder
   sidebarInit();
+
+  // form input listeners for confirm button readiness
+  const nameEl = document.getElementById('fld-name');
+  const commentEl = document.getElementById('fld-comment');
+  if(nameEl){ nameEl.addEventListener('input', validateConfirmEnabled); }
+  if(commentEl){ commentEl.addEventListener('input', validateConfirmEnabled); }
 </script>
 
 </body>
