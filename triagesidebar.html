@@ -118,10 +118,10 @@
   .theme-dark .bed.reserved{background:#3a2612; border-color:#b45309; color:#fbbf24}
 
   /* Bed picker - fixed overlay */
-  .bed-picker{position:fixed !important;top:50% !important;left:50% !important;transform:translate(-50%,-50%) !important;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10051 !important;display:none;width:280px;max-width:90vw;max-height:80vh;visibility:visible;opacity:1;pointer-events:auto;margin:0 !important}
+  .bed-picker{position:fixed !important;top:50% !important;left:50% !important;transform:translate(-50%,-50%) !important;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10051 !important;display:none;width:400px;max-width:90vw;max-height:80vh;visibility:visible;opacity:1;pointer-events:auto;margin:0 !important}
   .bed-picker[aria-hidden="false"]{display:block !important}
   .bed-picker .bp-head{font-size:13px;color:var(--text);margin-bottom:8px;font-weight:600}
-  .bed-picker .bp-body{display:grid;grid-template-columns:repeat(5,minmax(40px,1fr));gap:4px;max-height:60vh;overflow:auto;padding:4px}
+  .bed-picker .bp-body{display:grid;grid-template-columns:repeat(6,minmax(50px,1fr));gap:6px;max-height:60vh;overflow:auto;padding:4px}
   .bed-btn{padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;transition:all .15s ease}
   .bed-btn.free{background:var(--free-bg);border-color:#81c38b;color:var(--free)}
   .bed-btn.free:hover{filter:brightness(0.98);transform:scale(1.02)}
@@ -892,20 +892,26 @@
     }
   }
   function renderBedPicker(){
-    if(!bedPickerBody || !currentData || !currentData.beds) return;
-    const allZones = Object.keys(currentData.beds);
+    if(!bedPickerBody || !currentData || !currentData.beds || !currentLayout) return;
+    
     const entries = [];
-    allZones.forEach(z=>{
-      (currentData.beds[z].beds||[]).forEach(b=>{ entries.push(b); });
+    
+    // Use the same order as main view (following currentLayout structure)
+    currentLayout.forEach(zone => {
+      zone.rows.forEach(row => {
+        row.forEach(bedLabel => {
+          // Find bed data for this label
+          const bedData = Object.values(currentData.beds)
+            .flatMap(z => z.beds || [])
+            .find(b => b.label === bedLabel);
+          
+          if (bedData) {
+            entries.push(bedData);
+          }
+        });
+      });
     });
-    // Sort: regular beds first, AMB beds last
-    entries.sort((a,b)=>{
-      const aIsAmb = a.label.startsWith('AMB');
-      const bIsAmb = b.label.startsWith('AMB');
-      if(aIsAmb && !bIsAmb) return 1;
-      if(!aIsAmb && bIsAmb) return -1;
-      return a.label.localeCompare(b.label, undefined, {numeric: true});
-    });
+    
     bedPickerBody.innerHTML='';
     entries.forEach(b=>{
       const btn=document.createElement('button');
