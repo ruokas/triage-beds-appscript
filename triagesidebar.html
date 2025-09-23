@@ -87,6 +87,21 @@
   .doc-btn.active{background:var(--free-bg);color:var(--free);border-color:#81c38b;box-shadow:inset 0 0 0 2px rgba(34,197,94,.25)}
   .doc-btn[disabled]{opacity:.6;cursor:not-allowed}
 
+  /* Settings panel */
+  .settings{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px;margin-top:6px}
+  .settings h4{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:600}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px dashed var(--line)}
+  .setting-row:first-of-type{border-top:none}
+  .switch{position:relative;width:38px;height:22px;background:#e5e7eb;border-radius:999px;cursor:pointer;border:1px solid var(--line)}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.15);transition:left .2s ease}
+  .switch.on{background:#86efac;border-color:#81c38b}
+  .switch.on::after{left:20px}
+
+  /* Dark theme */
+  .theme-dark{--bg:#0f172a; --card:#0b1224; --text:#e5e7eb; --muted:#9ca3af; --line:#1f2a44; --chip:#111b34; --free-bg:#083c2c; --occ-bg:#3a0f15; --res-bg:#3a230f}
+  .theme-dark .btn:hover,.theme-dark .icon-btn:hover,.theme-dark .doc-btn:hover{background:#0d142a}
+  .theme-dark .zone,.theme-dark .recent,.theme-dark .settings,.theme-dark .modal{border-color:#1f2a44}
+  .theme-dark .chip.active{box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
 
     /* Undo juosta */
     .undo-bar{position:fixed;right:12px;bottom:12px;display:none;gap:8px;align-items:center;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9500}
@@ -249,6 +264,20 @@
   <div id="recent-actions" class="rlist"></div>
 </div>
 
+<!-- Nustatymai -->
+<div class="settings" id="settings">
+  <h4>Nustatymai</h4>
+  <div class="setting-row">
+    <div>Rodyti laukiančius 4h+ (įspėjimas)</div>
+    <div id="sw-wait" class="switch"></div>
+  </div>
+  <div class="setting-row">
+    <div>Tamsi tema</div>
+    <div id="sw-dark" class="switch"></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:6px">Nustatymai saugomi naršyklėje.</div>
+  </div>
+
 <!-- Modal (įrašyti pacientą) -->
 <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="modal" role="document" id="modal">
@@ -333,6 +362,26 @@
 
   function formatTime(d){ return new Date(d).toLocaleTimeString(); }
   const WAIT_ALERT_MINUTES = 240;
+  const SETTINGS_KEY = 'triageBedsSidebar.settings';
+  let settings = { showWaitAlert:true, darkMode:false };
+
+  function loadSettings(){
+    try{ const raw=localStorage.getItem(SETTINGS_KEY); if(raw){ const obj=JSON.parse(raw); if(obj&&typeof obj==='object'){ settings={...settings,...obj}; } } }
+    catch(e){}
+    applySettings();
+    syncSettingsUI();
+  }
+  function saveSettings(){
+    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
+  }
+  function applySettings(){
+    document.body.classList.toggle('theme-dark', !!settings.darkMode);
+  }
+  function syncSettingsUI(){
+    const w=document.getElementById('sw-wait'); const d=document.getElementById('sw-dark');
+    if(w){ w.classList.toggle('on', !!settings.showWaitAlert); }
+    if(d){ d.classList.toggle('on', !!settings.darkMode); }
+  }
   function calcWaitMinutes(isoString){
     if(!isoString) return null;
     const dt = new Date(isoString);
@@ -524,7 +573,7 @@
 
           if(waitMinutes!==null && b.occupied){
             el.setAttribute("data-wait-minutes", String(waitMinutes));
-            if(waitMinutes>WAIT_ALERT_MINUTES){
+            if(settings.showWaitAlert && waitMinutes>WAIT_ALERT_MINUTES){
               el.classList.add("wait-long");
             }
             const waitText = `Laukia ${waitMinutes} min.`;
@@ -902,12 +951,17 @@
   window.addEventListener('resize', ()=>{ hideCtxMenu(); hideConfirm(); });
 
   // Start
-  function sidebarInit(){ fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
+  function sidebarInit(){ loadSettings(); fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
   function sidebarGetAll(){} // placeholder
   sidebarInit();
 
   // form input listeners for confirm button readiness
   const nameEl = document.getElementById('fld-name');
+  // settings listeners
+  const swWait=document.getElementById('sw-wait');
+  const swDark=document.getElementById('sw-dark');
+  if(swWait){ swWait.addEventListener('click',()=>{ settings.showWaitAlert=!settings.showWaitAlert; saveSettings(); syncSettingsUI(); fetchAllAndRender(); }); }
+  if(swDark){ swDark.addEventListener('click',()=>{ settings.darkMode=!settings.darkMode; saveSettings(); applySettings(); }); }
   const commentEl = document.getElementById('fld-comment');
   if(nameEl){ nameEl.addEventListener('input', validateConfirmEnabled); }
   if(commentEl){ commentEl.addEventListener('input', validateConfirmEnabled); }
