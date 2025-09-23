@@ -343,11 +343,6 @@
       <div style="display:flex;gap:6px;align-items:center;position:relative">
         <input type="text" id="fld-bed" readonly style="max-width:120px" />
         <button type="button" class="btn" id="btn-bed-change" title="Keisti lovą">Keisti…</button>
-        <div id="bed-picker-backdrop" class="bed-picker-backdrop" aria-hidden="true"></div>
-        <div id="bed-picker" class="bed-picker" aria-hidden="true">
-          <div class="bp-head">Pasirinkite lovą</div>
-          <div class="bp-body" id="bed-picker-body"></div>
-        </div>
       </div>
     </div>
 
@@ -412,6 +407,13 @@
       <button class="btn" id="confirmNo">Ne</button>
     </div>
   </div>
+</div>
+
+<!-- Bed picker - outside modal structure -->
+<div id="bed-picker-backdrop" class="bed-picker-backdrop" aria-hidden="true"></div>
+<div id="bed-picker" class="bed-picker" aria-hidden="true">
+  <div class="bp-head">Pasirinkite lovą</div>
+  <div class="bp-body" id="bed-picker-body"></div>
 </div>
 
 <script>
@@ -872,14 +874,22 @@
     if(bedPickerBackdrop){ bedPickerBackdrop.setAttribute('aria-hidden','true'); bedPickerBackdrop.style.display='none'; }
   }
   function showBedPicker(){ 
+    console.log('showBedPicker called', bedPicker, bedPickerBackdrop);
     if(bedPicker){ 
       bedPicker.setAttribute('aria-hidden','false'); 
       bedPicker.style.display='block'; 
       bedPicker.style.visibility='visible';
       bedPicker.style.opacity='1';
+      bedPicker.style.zIndex='10051';
       renderBedPicker(); 
+      console.log('Bed picker shown:', bedPicker.style.display, bedPicker.style.zIndex);
     }
-    if(bedPickerBackdrop){ bedPickerBackdrop.setAttribute('aria-hidden','false'); bedPickerBackdrop.style.display='block'; }
+    if(bedPickerBackdrop){ 
+      bedPickerBackdrop.setAttribute('aria-hidden','false'); 
+      bedPickerBackdrop.style.display='block'; 
+      bedPickerBackdrop.style.zIndex='10049';
+      console.log('Backdrop shown:', bedPickerBackdrop.style.display, bedPickerBackdrop.style.zIndex);
+    }
   }
   function renderBedPicker(){
     if(!bedPickerBody || !currentData || !currentData.beds) return;
