@@ -326,13 +326,37 @@ function _getRecentActions_(limit) {
     if (!sh) return [];
     const last = sh.getLastRow();
     if (last < 2) return [];
+    
+    // Check if we need to migrate the log sheet structure
+    const headerRow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    const hasStatusColumn = headerRow.includes('Status');
+    
+    let columnCount = LOG_HEADERS.length;
+    if (hasStatusColumn) {
+      // Old structure has Status column, so we need to read more columns
+      columnCount = LOG_HEADERS.length + 1; // +1 for Status column
+    }
+    
     const n = Math.min(limit || 8, last - 1);
     const start = last - n + 1;
-    const values = sh.getRange(start, 1, n, LOG_HEADERS.length).getValues();
-    return values.map(r => ({
-      ts: r[0], user: r[1], action: r[2], summary: r[3],
-      from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], comment: r[10]
-    })).reverse();
+    const values = sh.getRange(start, 1, n, columnCount).getValues();
+    
+    return values.map(r => {
+      // Handle both old and new column structures
+      if (hasStatusColumn) {
+        // Old structure: skip Status column (index 3)
+        return {
+          ts: r[0], user: r[1], action: r[2], summary: r[4], // Skip r[3] which is Status
+          from: r[5], to: r[6], bed: r[7], patient: r[8], doctor: r[9], triage: r[10], comment: r[11]
+        };
+      } else {
+        // New structure
+        return {
+          ts: r[0], user: r[1], action: r[2], summary: r[3],
+          from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], comment: r[10]
+        };
+      }
+    }).reverse();
   } catch (e) {
     console.error('Error in _getRecentActions_:', e);
     return [];
@@ -359,13 +383,29 @@ function _getLatestAssignTimes_(bedLabels) {
   const last = sh.getLastRow();
   if (last < 2) return out;
 
-  const timeIdx = LOG_HEADERS.indexOf('Laikas');
-  const actionIdx = LOG_HEADERS.indexOf('Veiksmas');
-  const bedIdx = LOG_HEADERS.indexOf('Lova');
+  // Check if we need to handle old log structure
+  const headerRow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const hasStatusColumn = headerRow.includes('Status');
+  
+  let timeIdx, actionIdx, bedIdx, columnCount;
+  if (hasStatusColumn) {
+    // Old structure: Status column is at index 3
+    timeIdx = 0; // Laikas
+    actionIdx = 2; // Veiksmas  
+    bedIdx = 7; // Lova (after Status column)
+    columnCount = LOG_HEADERS.length + 1; // +1 for Status column
+  } else {
+    // New structure
+    timeIdx = LOG_HEADERS.indexOf('Laikas');
+    actionIdx = LOG_HEADERS.indexOf('Veiksmas');
+    bedIdx = LOG_HEADERS.indexOf('Lova');
+    columnCount = LOG_HEADERS.length;
+  }
+  
   if (timeIdx === -1 || actionIdx === -1 || bedIdx === -1) return out;
 
   const rangeHeight = last - 1;
-  const logValues = sh.getRange(2, 1, rangeHeight, LOG_HEADERS.length).getValues();
+  const logValues = sh.getRange(2, 1, rangeHeight, columnCount).getValues();
   const remaining = new Set(labels);
 
   for (let i = logValues.length - 1; i >= 0 && remaining.size > 0; i--) {
