@@ -382,8 +382,20 @@
   let settings = { showWaitAlert:true, darkMode:false, settingsCollapsed:true };
 
   function loadSettings(){
-    try{ const raw=localStorage.getItem(SETTINGS_KEY); if(raw){ const obj=JSON.parse(raw); if(obj&&typeof obj==='object'){ settings={...settings,...obj}; } } }
-    catch(e){}
+    let hadStored=false;
+    try{
+      const raw=localStorage.getItem(SETTINGS_KEY);
+      if(raw){
+        const obj=JSON.parse(raw);
+        if(obj&&typeof obj==='object'){ settings={...settings,...obj}; hadStored=true; }
+      }
+    } catch(e){}
+    // One-time init: ensure collapsed by default if never initialized
+    if(!settings._collapsedInitialized){
+      settings.settingsCollapsed = true;
+      settings._collapsedInitialized = true;
+      try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
+    }
     applySettings();
     syncSettingsUI();
   }
