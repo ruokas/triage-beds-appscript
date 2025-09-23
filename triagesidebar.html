@@ -491,6 +491,12 @@
         renderRecent(recent || []);
         document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
       })
+      .withFailureHandler(err => {
+        console.error('Error fetching data:', err);
+        document.getElementById("last-updated").textContent="Klaida: "+String(err);
+        // Try to render with empty data to show something
+        renderZones({ beds: {} }, []);
+      })
       .sidebarGetAll({ userName });
   }
 

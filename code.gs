@@ -295,31 +295,48 @@ function _logAction_(o) {
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
-  const userName = (payload && typeof payload === 'object') ? payload.userName : '';
-  const layout = ZONOS_LAYOUT.map(zone => ({
-    name: zone.name,
-    rows: zone.rows.map(row => row.slice())
-  }));
-  return {
-    zonesPayload: getLiveZoneData(userName),
-    layout,
-    doctors: getDoctorsList_(),
-    recent: _getRecentActions_(8),
-    now: new Date().toISOString()
-  };
+  try {
+    const userName = (payload && typeof payload === 'object') ? payload.userName : '';
+    const layout = ZONOS_LAYOUT.map(zone => ({
+      name: zone.name,
+      rows: zone.rows.map(row => row.slice())
+    }));
+    return {
+      zonesPayload: getLiveZoneData(userName),
+      layout,
+      doctors: getDoctorsList_(),
+      recent: _getRecentActions_(8),
+      now: new Date().toISOString()
+    };
+  } catch (e) {
+    console.error('Error in sidebarGetAll:', e);
+    // Return minimal data to prevent complete failure
+    return {
+      zonesPayload: { beds: {} },
+      layout: [],
+      doctors: [],
+      recent: [],
+      now: new Date().toISOString()
+    };
+  }
 }
 function _getRecentActions_(limit) {
-  const sh = _sheet(LOG_SHEET);
-  if (!sh) return [];
-  const last = sh.getLastRow();
-  if (last < 2) return [];
-  const n = Math.min(limit || 8, last - 1);
-  const start = last - n + 1;
-  const values = sh.getRange(start, 1, n, LOG_HEADERS.length).getValues();
-  return values.map(r => ({
-    ts: r[0], user: r[1], action: r[2], summary: r[3],
-    from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], comment: r[10]
-  })).reverse();
+  try {
+    const sh = _sheet(LOG_SHEET);
+    if (!sh) return [];
+    const last = sh.getLastRow();
+    if (last < 2) return [];
+    const n = Math.min(limit || 8, last - 1);
+    const start = last - n + 1;
+    const values = sh.getRange(start, 1, n, LOG_HEADERS.length).getValues();
+    return values.map(r => ({
+      ts: r[0], user: r[1], action: r[2], summary: r[3],
+      from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], comment: r[10]
+    })).reverse();
+  } catch (e) {
+    console.error('Error in _getRecentActions_:', e);
+    return [];
+  }
 }
 
 /**
