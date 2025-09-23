@@ -638,7 +638,15 @@
     }
 
     const userName = getLocalUserName();
-    google.script.run.withSuccessHandler(res=>{
+    google.script.run
+      .withFailureHandler(err=>{
+        setFormEnabled(true);
+        showReserveStatus(false);
+        const msg = (err && err.message) ? err.message : String(err || 'Nežinoma klaida');
+        alert('Rezervacijos klaida: ' + msg);
+        if(isModalOpen()){ scheduleNameFocus(); }
+      })
+      .withSuccessHandler(res=>{
       if(res && res.ok){
         reservation.ok=true;
         setFormEnabled(true);
@@ -770,7 +778,13 @@
       alert("Pasirinkite triažo kategoriją (1–5)."); btn.textContent="Patvirtinti"; btn.disabled=false; return;
     }
 
-    google.script.run.withSuccessHandler(res=>{
+    google.script.run
+      .withFailureHandler(err=>{
+        btn.textContent="Patvirtinti"; btn.disabled=false;
+        const msg = (err && err.message) ? err.message : String(err || 'Nežinoma klaida');
+        alert('Įrašymo klaida: ' + msg);
+      })
+      .withSuccessHandler(res=>{
       btn.textContent="Patvirtinti"; btn.disabled=false;
       if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko įrašyti į lentą."); return; }
       closeModal(); releaseReservation(); clearForm();
