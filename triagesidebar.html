@@ -118,8 +118,8 @@
   .theme-dark .bed.reserved{background:#3a2612; border-color:#b45309; color:#fbbf24}
 
   /* Bed picker - fixed overlay */
-  .bed-picker{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10051;display:none;min-width:320px;max-width:90vw;max-height:80vh;visibility:visible;opacity:1;pointer-events:auto}
-  .bed-picker[aria-hidden="false"]{display:block}
+  .bed-picker{position:fixed !important;top:50% !important;left:50% !important;transform:translate(-50%,-50%) !important;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10051 !important;display:none;min-width:320px;max-width:90vw;max-height:80vh;visibility:visible;opacity:1;pointer-events:auto;margin:0 !important}
+  .bed-picker[aria-hidden="false"]{display:block !important}
   .bed-picker .bp-head{font-size:13px;color:var(--text);margin-bottom:8px;font-weight:600}
   .bed-picker .bp-body{display:grid;grid-template-columns:repeat(6,minmax(44px,1fr));gap:6px;max-height:60vh;overflow:auto;padding:4px}
   .bed-btn{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;cursor:pointer;transition:all .15s ease}
@@ -127,8 +127,8 @@
   .bed-btn.free:hover{filter:brightness(0.98);transform:scale(1.02)}
   .bed-btn.disabled{opacity:.5;cursor:not-allowed}
   .bed-btn.changing{opacity:.7;pointer-events:none;background:#f3f4f6}
-  .bed-picker-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:10049;display:none;pointer-events:auto}
-  .bed-picker-backdrop[aria-hidden="false"]{display:block}
+  .bed-picker-backdrop{position:fixed !important;inset:0 !important;background:rgba(0,0,0,.3);z-index:10049 !important;display:none;pointer-events:auto;margin:0 !important;padding:0 !important}
+  .bed-picker-backdrop[aria-hidden="false"]{display:block !important}
 
     /* Undo juosta */
     .undo-bar{position:fixed;right:12px;bottom:12px;display:none;gap:8px;align-items:center;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9500}
