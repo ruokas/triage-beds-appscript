@@ -162,10 +162,12 @@ function _resolveUserIdentity_(userName) {
     } catch (e) {}
   }
 
+  // Don't use email as display name - only for internal tagging
+  let emailForTag = '';
   if (!name) {
     try {
       const email = Session.getActiveUser().getEmail();
-      if (email) name = String(email).trim();
+      if (email) emailForTag = String(email).trim();
     } catch (e) {}
   }
 
@@ -174,9 +176,9 @@ function _resolveUserIdentity_(userName) {
     tempKey = Session.getTemporaryActiveUserKey();
   } catch (e) {}
 
-  const baseTag = name || 'anon';
+  const baseTag = name || emailForTag || 'anon';
   const tag = tempKey ? `${baseTag}#${tempKey}` : baseTag;
-  const display = name || 'Nenurodytas';
+  const display = name || 'Unknown'; // Use 'Unknown' instead of email
 
   return { tag, display };
 }
