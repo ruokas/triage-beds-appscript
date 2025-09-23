@@ -296,20 +296,40 @@ function _logAction_(o) {
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
   try {
+    console.log('sidebarGetAll: Starting with payload:', payload);
     const userName = (payload && typeof payload === 'object') ? payload.userName : '';
+    console.log('sidebarGetAll: userName =', userName);
+    
     const layout = ZONOS_LAYOUT.map(zone => ({
       name: zone.name,
       rows: zone.rows.map(row => row.slice())
     }));
-    return {
-      zonesPayload: getLiveZoneData(userName),
+    console.log('sidebarGetAll: layout created, length =', layout.length);
+    
+    console.log('sidebarGetAll: Getting zonesPayload...');
+    const zonesPayload = getLiveZoneData(userName);
+    console.log('sidebarGetAll: zonesPayload =', zonesPayload);
+    
+    console.log('sidebarGetAll: Getting doctors...');
+    const doctors = getDoctorsList_();
+    console.log('sidebarGetAll: doctors =', doctors);
+    
+    console.log('sidebarGetAll: Getting recent actions...');
+    const recent = _getRecentActions_(8);
+    console.log('sidebarGetAll: recent =', recent);
+    
+    const result = {
+      zonesPayload,
       layout,
-      doctors: getDoctorsList_(),
-      recent: _getRecentActions_(8),
+      doctors,
+      recent,
       now: new Date().toISOString()
     };
+    console.log('sidebarGetAll: Returning result:', result);
+    return result;
   } catch (e) {
     console.error('Error in sidebarGetAll:', e);
+    console.error('Error stack:', e.stack);
     // Return minimal data to prevent complete failure
     return {
       zonesPayload: { beds: {} },
@@ -440,9 +460,19 @@ function _getLatestAssignTimes_(bedLabels) {
 
 /** Užimtumas (LENTA F; AMB M) ir slaugytojos, pac. vardas */
 function getLiveZoneData(userName) {
-  const sh = _sheet(SHEET_LENTA);
-  const me = _getUserTag(userName);
-  const cache = CacheService.getDocumentCache();
+  try {
+    console.log('getLiveZoneData: Starting with userName =', userName);
+    const sh = _sheet(SHEET_LENTA);
+    console.log('getLiveZoneData: LENTA sheet =', sh);
+    if (!sh) {
+      console.error('getLiveZoneData: LENTA sheet not found!');
+      return { beds: {}, nurses: {} };
+    }
+    
+    const me = _getUserTag(userName);
+    console.log('getLiveZoneData: me =', me);
+    const cache = CacheService.getDocumentCache();
+    console.log('getLiveZoneData: cache =', cache);
 
   // Visi rezervacijų raktai (vienkartinis užklausimas į Cache)
   const allBedLabels = Array.from(new Set(Object.values(ZONOS).flat()));
@@ -517,19 +547,38 @@ function getLiveZoneData(userName) {
   nurses["Ambulatorija"] = nurseMap["Ambulatorija"] || "Nenurodyta";
 
   return { beds: bedsPayload, nurses };
+  } catch (e) {
+    console.error('Error in getLiveZoneData:', e);
+    console.error('Error stack:', e.stack);
+    return { beds: {}, nurses: {} };
+  }
 }
 
 
 /** Gydytojų sąrašas */
 function getDoctorsList_() {
-  const sh = _sheet(DOCTORS_SHEET);
-  if (!sh) return [];
-  const rng = sh.getRange(DOCTORS_RANGE).getValues(); // 1 x N
-  const vals = (rng[0] || []).map(v => String(v || '').trim()).filter(Boolean);
-  const seen = {};
-  const out = [];
-  vals.forEach(v => { if (!seen[v]) { seen[v] = true; out.push(v); } });
-  return out;
+  try {
+    console.log('getDoctorsList_: Starting...');
+    const sh = _sheet(DOCTORS_SHEET);
+    console.log('getDoctorsList_: DOCTORS_SHEET =', sh);
+    if (!sh) {
+      console.error('getDoctorsList_: DOCTORS_SHEET not found!');
+      return [];
+    }
+    const rng = sh.getRange(DOCTORS_RANGE).getValues(); // 1 x N
+    console.log('getDoctorsList_: range values =', rng);
+    const vals = (rng[0] || []).map(v => String(v || '').trim()).filter(Boolean);
+    console.log('getDoctorsList_: filtered vals =', vals);
+    const seen = {};
+    const out = [];
+    vals.forEach(v => { if (!seen[v]) { seen[v] = true; out.push(v); } });
+    console.log('getDoctorsList_: final out =', out);
+    return out;
+  } catch (e) {
+    console.error('Error in getDoctorsList_:', e);
+    console.error('Error stack:', e.stack);
+    return [];
+  }
 }
 
 /** ===================== RESERVATIONS (su LockService) ===================== **/
