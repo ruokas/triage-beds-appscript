@@ -126,6 +126,8 @@
   .bed-btn.free{background:var(--free-bg);border-color:#81c38b;color:var(--free)}
   .bed-btn.free:hover{filter:brightness(0.98);transform:scale(1.02)}
   .bed-btn.disabled{opacity:.5;cursor:not-allowed}
+  .bed-btn.reserved-by-me{background:#e0f2fe;border-color:#0ea5e9;color:#0369a1;font-weight:600}
+  .bed-btn.reserved-by-me:hover{filter:brightness(0.95);transform:scale(1.02)}
   .bed-btn.changing{opacity:.7;pointer-events:none;background:#f3f4f6}
   .bed-picker-backdrop{position:fixed !important;inset:0 !important;background:rgba(0,0,0,.3);z-index:10049 !important;display:none;pointer-events:auto;margin:0 !important;padding:0 !important}
   .bed-picker-backdrop[aria-hidden="false"]{display:block !important}
@@ -845,7 +847,14 @@
     const userName = getLocalUserName();
     reservation.keepAliveName = userName;
     reservation.keepAliveTimer=setInterval(()=>{
-      google.script.run.keepAliveReservation({ bedLabel, userName });
+      google.script.run
+        .withFailureHandler(err => {
+          console.error('Keep-alive failed:', err);
+          alert('Rezervacijos ryšys nutrūko. Lova gali būti atlaisvinta kitiems naudotojams.');
+          // Stop keep-alive on failure to prevent spam
+          stopKeepAlive();
+        })
+        .keepAliveReservation({ bedLabel, userName });
     },60000);
   }
   function stopKeepAlive(){
@@ -914,9 +923,40 @@
       const btn=document.createElement('button');
       btn.type='button';
       btn.textContent=b.label;
-      btn.className='bed-btn'+(b.occupied||b.reservedByOther?' disabled':' free');
-      btn.disabled=!!(b.occupied||b.reservedByOther);
-      btn.addEventListener('click',()=>{ selectNewBed(b.label, btn); });
+      
+      // Enhanced status detection
+      let statusClass = 'bed-btn';
+      let isDisabled = false;
+      let tooltip = '';
+      
+      if (b.occupied) {
+        statusClass += ' disabled';
+        isDisabled = true;
+        tooltip = `Užimta: ${b.patient || 'Pacientas'}`;
+      } else if (b.reservedByOther) {
+        statusClass += ' disabled';
+        isDisabled = true;
+        tooltip = 'Rezervuota kito naudotojo';
+      } else if (b.reservedByMe) {
+        statusClass += ' reserved-by-me';
+        tooltip = 'Jūsų rezervuota';
+      } else {
+        statusClass += ' free';
+        tooltip = 'Laisva';
+      }
+      
+      btn.className = statusClass;
+      btn.disabled = isDisabled;
+      btn.title = tooltip;
+      
+      btn.addEventListener('click',()=>{ 
+        // Double-check availability before selection
+        if (b.occupied || b.reservedByOther) {
+          alert('Lova nebėra laisva. Atnaujinkite sąrašą.');
+          return;
+        }
+        selectNewBed(b.label, btn); 
+      });
       bedPickerBody.appendChild(btn);
     });
   }
@@ -952,14 +992,26 @@
         // Hide picker immediately for faster response
         hideBedPicker();
         
-        // Release old reservation in background (non-blocking)
+        // Release old reservation (blocking to prevent race conditions)
         if(current) {
-          google.script.run.withFailureHandler(()=>{})
+          google.script.run
+            .withFailureHandler(err => {
+              console.error('Failed to release old bed:', err);
+              alert('Nepavyko atlaisvinti senos lovos: ' + (err.message || err));
+              // Revert UI changes
+              reservation.bedLabel = current; reservation.ok = true;
+              if(bf){ bf.value=current; }
+              validateConfirmEnabled();
+            })
+            .withSuccessHandler(() => {
+              // Start keep-alive for new bed only after old bed is released
+              startKeepAlive(newLabel);
+            })
             .releaseReservation({ bedLabel:current, userName });
+        } else {
+          // Start keep-alive for new bed if no old bed to release
+          startKeepAlive(newLabel);
         }
-        
-        // Start keep-alive for new bed
-        startKeepAlive(newLabel);
       })
       .reserveBed({ bedLabel:newLabel, userName });
   }
@@ -1033,7 +1085,12 @@
       })
       .withSuccessHandler(res=>{
       btn.textContent="Patvirtinti"; btn.disabled=false;
-      if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko įrašyti į lentą."); return; }
+      if(!res||!res.ok){ 
+        alert((res&&res.msg)?res.msg:"Nepavyko įrašyti į lentą."); 
+        // Refresh data to show current state
+        fetchAllAndRender();
+        return; 
+      }
       closeModal(); releaseReservation(); clearForm();
       showUndo(res.undoToken,"Įrašyta. "); fetchAllAndRender();
     }).assignBed(payload);

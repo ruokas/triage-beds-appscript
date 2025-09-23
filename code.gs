@@ -458,7 +458,7 @@ function reserveBed(payload) {
   const me = userIdentity.tag;
 
   const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+  if (!lock.tryLock(15000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
   try {
     const sh = _sheet(SHEET_LENTA);
     if (sh) {
@@ -524,7 +524,7 @@ function _normalizeTriage(t) {
  */
 function assignBed(payload) {
   const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+  if (!lock.tryLock(15000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
 
   try {
     const { bedLabel, patientName, triage, doctor, comment, userName } = payload || {};
@@ -639,7 +639,7 @@ function undoAssign(payload) {
   const userIdentity = _resolveUserIdentity_(dataIn.userName);
 
   const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+  if (!lock.tryLock(15000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
 
   try {
     const data = _readUndo_(undoToken);
@@ -691,7 +691,7 @@ function movePatient(payload) {
   const userIdentity = _resolveUserIdentity_(userName);
 
   const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(5000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
+  if (!lock.tryLock(15000)) return { ok:false, msg:'Sistema užimta. Bandykite dar kartą.' };
 
   try {
     const sh = _sheet(SHEET_LENTA);
