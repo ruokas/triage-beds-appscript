@@ -432,7 +432,10 @@
   let ctxTargetBed=null, ctxX=0, ctxY=0;
   let confirmTargetBed=null;
 
-  function formatTime(d){ return new Date(d).toLocaleTimeString(); }
+  function formatTime(d){ 
+    const date = new Date(d);
+    return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+  }
   const WAIT_ALERT_MINUTES = 240;
   const SETTINGS_KEY = 'triageBedsSidebar.settings';
   let settings = { showWaitAlert:true, darkMode:false, settingsCollapsed:true };
@@ -719,7 +722,11 @@
       return;
     }
     box.innerHTML=list.map(it=>{
-      let t=''; try{ t=new Date(it.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){}
+      let t=''; 
+      try{ 
+        const date = new Date(it.ts);
+        t = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+      }catch(e){}
       const s=it.summary || (it.action || '');
       return `<div class="ritem"><div class="t">${t}</div><div class="s">${escapeHtml(s)}</div></div>`;
     }).join('');
