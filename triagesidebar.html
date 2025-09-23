@@ -706,13 +706,16 @@
       },0);
     };
 
+    // Fokusas iš karto, nelaukiant duomenų įkėlimo / rezervacijos
+    scheduleNameFocus();
+
     setFormEnabled(false); showReserveStatus(true);
 
     if(alreadyMine){
       reservation.ok=true;
       setFormEnabled(true);
       showReserveStatus(false);
-      scheduleNameFocus();
+      // fokusas jau nustatytas anksčiau; paliekame nekeičiant
       startKeepAlive(bedLabel);
       validateConfirmEnabled();
       return;
@@ -732,7 +735,7 @@
         reservation.ok=true;
         setFormEnabled(true);
         showReserveStatus(false);
-        scheduleNameFocus();
+        // fokusas jau aktyvus
         validateConfirmEnabled();
         startKeepAlive(bedLabel);
       }else{
