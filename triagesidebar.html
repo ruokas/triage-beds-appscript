@@ -925,6 +925,8 @@
     if(btnEl){ btnEl.classList.add('changing'); btnEl.disabled=true; }
     
     const userName = getLocalUserName();
+    
+    // Optimize: Reserve new bed first, then release old one
     google.script.run
       .withFailureHandler(err=>{
         if(btnEl){ btnEl.classList.remove('changing'); btnEl.disabled=false; }
@@ -938,12 +940,23 @@
           alert((res&&res.msg)?res.msg:'Nepavyko rezervuoti naujos lovos.'); 
           return; 
         }
-        // Success: update reservation and UI
-        releaseReservation();
+        
+        // Success: immediately update UI for better UX
         reservation.bedLabel = newLabel; reservation.ok = true;
-        startKeepAlive(newLabel);
         const bf=document.getElementById('fld-bed'); if(bf){ bf.value=newLabel; }
-        validateConfirmEnabled(); hideBedPicker();
+        validateConfirmEnabled(); 
+        
+        // Hide picker immediately for faster response
+        hideBedPicker();
+        
+        // Release old reservation in background (non-blocking)
+        if(current) {
+          google.script.run.withFailureHandler(()=>{})
+            .releaseReservation({ bedLabel:current, userName });
+        }
+        
+        // Start keep-alive for new bed
+        startKeepAlive(newLabel);
       })
       .reserveBed({ bedLabel:newLabel, userName });
   }
