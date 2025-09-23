@@ -117,6 +117,16 @@
   .theme-dark .bed.occupied{background:#3a1520; border-color:#7f1d1d; color:#f87171}
   .theme-dark .bed.reserved{background:#3a2612; border-color:#b45309; color:#fbbf24}
 
+  /* Bed picker */
+  .bed-picker{position:absolute;top:100%;left:0;margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:8px;z-index:10010;display:none;min-width:260px}
+  .bed-picker[aria-hidden="false"]{display:block}
+  .bed-picker .bp-head{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .bed-picker .bp-body{display:grid;grid-template-columns:repeat(5,minmax(40px,1fr));gap:6px;max-height:220px;overflow:auto}
+  .bed-btn{padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;cursor:pointer}
+  .bed-btn.free{background:var(--free-bg);border-color:#81c38b;color:var(--free)}
+  .bed-btn.free:hover{filter:brightness(0.98)}
+  .bed-btn.disabled{opacity:.5;cursor:not-allowed}
+
     /* Undo juosta */
     .undo-bar{position:fixed;right:12px;bottom:12px;display:none;gap:8px;align-items:center;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9500}
     .undo-bar .timer{font-size:12px;opacity:.85}
@@ -146,6 +156,29 @@
     .confirm-pop .body{padding:10px}
     .confirm-pop .title{font-size:13px; margin-bottom:8px}
     .confirm-pop .actions{display:flex; gap:8px; justify-content:flex-end; padding:8px}
+
+    /* Bed Picker */
+    .bed-picker{
+      position:absolute;
+      top:100%; left:0;
+      background:#fff; border:1px solid var(--line);
+      border-radius:8px; box-shadow:0 10px 24px rgba(0,0,0,.15);
+      width:200px; max-height:200px; overflow-y:auto;
+      z-index:10002;
+    }
+    .bed-picker .bp-head{
+      padding:8px 10px; border-bottom:1px solid var(--line);
+      font-size:12px; font-weight:600; color:var(--text);
+    }
+    .bed-picker .bp-body{padding:4px 0}
+    .bed-picker .bp-item{
+      padding:8px 10px; cursor:pointer;
+      font-size:12px; color:var(--text);
+      border-bottom:1px solid var(--line);
+    }
+    .bed-picker .bp-item:last-child{border-bottom:none}
+    .bed-picker .bp-item:hover{background:#f3f4f6}
+    .bed-picker .bp-item.active{background:var(--free-bg); color:var(--free); font-weight:600}
   </style>
 </head>
 <body>
@@ -304,9 +337,13 @@
 
     <div class="field">
       <label for="fld-bed">Lova</label>
-      <div style="display:flex;gap:6px;align-items:center">
+      <div style="display:flex;gap:6px;align-items:center;position:relative">
         <input type="text" id="fld-bed" readonly style="max-width:120px" />
         <button type="button" class="btn" id="btn-bed-change" title="Keisti lovą">Keisti…</button>
+        <div id="bed-picker" class="bed-picker" aria-hidden="true">
+          <div class="bp-head">Pasirinkite lovą</div>
+          <div class="bp-body" id="bed-picker-body"></div>
+        </div>
       </div>
     </div>
 
@@ -821,37 +858,54 @@
     reservation.bedLabel=null;
   }
 
-  // Keisti lovą modal viduje
+  // Bed picker logic
   const btnBedChange = document.getElementById('btn-bed-change');
-  if(btnBedChange){
-    btnBedChange.addEventListener('click',()=>{
-      const current = reservation.bedLabel;
-      if(!current){ return; }
-      const to = prompt('Įveskite naujos lovos žymenį (pvz., 7, P4, AMB3):', current) || '';
-      const bedLabel = to.trim().toUpperCase();
-      if(!bedLabel || bedLabel===current) return;
-
-      // bandome rezervuoti naują lovą
-      setFormEnabled(false); showReserveStatus(true);
-      const userName = getLocalUserName();
-      google.script.run
-        .withFailureHandler(err=>{
-          setFormEnabled(true); showReserveStatus(false);
-          alert('Nepavyko pakeisti lovos: '+((err&&err.message)||String(err||'')));
-        })
-        .withSuccessHandler(res=>{
-          setFormEnabled(true); showReserveStatus(false);
-          if(!res||!res.ok){ alert((res&&res.msg)?res.msg:'Nepavyko rezervuoti naujos lovos.'); return; }
-          // išleidžiam seną, atnaujinam būseną
-          releaseReservation();
-          reservation.bedLabel = bedLabel; reservation.ok = true;
-          startKeepAlive(bedLabel);
-          const bf=document.getElementById('fld-bed'); if(bf){ bf.value=bedLabel; }
-          validateConfirmEnabled();
-        })
-        .reserveBed({ bedLabel, userName });
+  const bedPicker = document.getElementById('bed-picker');
+  const bedPickerBody = document.getElementById('bed-picker-body');
+  function hideBedPicker(){ if(bedPicker){ bedPicker.setAttribute('aria-hidden','true'); bedPicker.style.display='none'; } }
+  function showBedPicker(){ if(bedPicker){ bedPicker.setAttribute('aria-hidden','false'); bedPicker.style.display='block'; renderBedPicker(); } }
+  function renderBedPicker(){
+    if(!bedPickerBody || !currentData || !currentData.beds) return;
+    const me = reservation.bedLabel;
+    const allZones = Object.keys(currentData.beds);
+    const entries = [];
+    allZones.forEach(z=>{
+      (currentData.beds[z].beds||[]).forEach(b=>{ entries.push(b); });
+    });
+    bedPickerBody.innerHTML='';
+    entries.forEach(b=>{
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.textContent=b.label;
+      btn.className='bed-btn'+(b.occupied||b.reservedByOther?' disabled':' free');
+      btn.disabled=!!(b.occupied||b.reservedByOther);
+      btn.addEventListener('click',()=>{ selectNewBed(b.label); });
+      bedPickerBody.appendChild(btn);
     });
   }
+  function selectNewBed(newLabel){
+    const current = reservation.bedLabel;
+    if(!newLabel || newLabel===current) { hideBedPicker(); return; }
+    setFormEnabled(false); showReserveStatus(true);
+    const userName = getLocalUserName();
+    google.script.run
+      .withFailureHandler(err=>{
+        setFormEnabled(true); showReserveStatus(false); hideBedPicker();
+        alert('Nepavyko pakeisti lovos: '+((err&&err.message)||String(err||'')));
+      })
+      .withSuccessHandler(res=>{
+        setFormEnabled(true); showReserveStatus(false);
+        if(!res||!res.ok){ alert((res&&res.msg)?res.msg:'Nepavyko rezervuoti naujos lovos.'); return; }
+        releaseReservation();
+        reservation.bedLabel = newLabel; reservation.ok = true;
+        startKeepAlive(newLabel);
+        const bf=document.getElementById('fld-bed'); if(bf){ bf.value=newLabel; }
+        validateConfirmEnabled(); hideBedPicker();
+      })
+      .reserveBed({ bedLabel:newLabel, userName });
+  }
+  if(btnBedChange){ btnBedChange.addEventListener('click',()=>{ const vis = bedPicker && bedPicker.getAttribute('aria-hidden')==='false'; if(vis) hideBedPicker(); else showBedPicker(); }); }
+  document.addEventListener('click',(e)=>{ if(!e.target.closest('#bed-picker') && !e.target.closest('#btn-bed-change')) hideBedPicker(); });
 
   // Triažo chip'ai + 1–5
   document.addEventListener('click',(e)=>{
