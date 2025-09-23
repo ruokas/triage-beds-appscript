@@ -118,7 +118,7 @@
   .theme-dark .bed.reserved{background:#3a2612; border-color:#b45309; color:#fbbf24}
 
   /* Bed picker - fixed overlay */
-  .bed-picker{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10020;display:none;min-width:320px;max-width:90vw;max-height:80vh}
+  .bed-picker{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10050;display:none;min-width:320px;max-width:90vw;max-height:80vh;visibility:visible;opacity:1}
   .bed-picker[aria-hidden="false"]{display:block}
   .bed-picker .bp-head{font-size:13px;color:var(--text);margin-bottom:8px;font-weight:600}
   .bed-picker .bp-body{display:grid;grid-template-columns:repeat(6,minmax(44px,1fr));gap:6px;max-height:60vh;overflow:auto;padding:4px}
@@ -127,7 +127,7 @@
   .bed-btn.free:hover{filter:brightness(0.98);transform:scale(1.02)}
   .bed-btn.disabled{opacity:.5;cursor:not-allowed}
   .bed-btn.changing{opacity:.7;pointer-events:none;background:#f3f4f6}
-  .bed-picker-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:10019;display:none}
+  .bed-picker-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:10049;display:none}
   .bed-picker-backdrop[aria-hidden="false"]{display:block}
 
     /* Undo juosta */
@@ -875,14 +875,9 @@
     if(bedPicker){ 
       bedPicker.setAttribute('aria-hidden','false'); 
       bedPicker.style.display='block'; 
+      bedPicker.style.visibility='visible';
+      bedPicker.style.opacity='1';
       renderBedPicker(); 
-      // Ensure it's visible and interactive
-      setTimeout(() => {
-        if(bedPicker) {
-          bedPicker.style.visibility = 'visible';
-          bedPicker.style.opacity = '1';
-        }
-      }, 0);
     }
     if(bedPickerBackdrop){ bedPickerBackdrop.setAttribute('aria-hidden','false'); bedPickerBackdrop.style.display='block'; }
   }
