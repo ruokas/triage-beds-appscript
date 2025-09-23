@@ -303,6 +303,14 @@
     <div class="hint" id="modal-subtitle">Kol pildote duomenis, ši lova pažymėta kaip „rezervuota“.</div>
 
     <div class="field">
+      <label for="fld-bed">Lova</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" id="fld-bed" readonly style="max-width:120px" />
+        <button type="button" class="btn" id="btn-bed-change" title="Keisti lovą">Keisti…</button>
+      </div>
+    </div>
+
+    <div class="field">
       <label for="fld-name">Pacientas</label>
       <input type="text" id="fld-name" placeholder="Vardas Pavardė" />
     </div>
@@ -711,6 +719,9 @@
       },0);
     };
 
+    // Parodome lovos lauką
+    const bedField=document.getElementById('fld-bed'); if(bedField){ bedField.value=bedLabel||''; }
+
     // Fokusas iš karto, nelaukiant duomenų įkėlimo / rezervacijos
     scheduleNameFocus();
 
@@ -808,6 +819,38 @@
     const userName = reservation.keepAliveName || getLocalUserName();
     google.script.run.releaseReservation({ bedLabel:reservation.bedLabel, userName });
     reservation.bedLabel=null;
+  }
+
+  // Keisti lovą modal viduje
+  const btnBedChange = document.getElementById('btn-bed-change');
+  if(btnBedChange){
+    btnBedChange.addEventListener('click',()=>{
+      const current = reservation.bedLabel;
+      if(!current){ return; }
+      const to = prompt('Įveskite naujos lovos žymenį (pvz., 7, P4, AMB3):', current) || '';
+      const bedLabel = to.trim().toUpperCase();
+      if(!bedLabel || bedLabel===current) return;
+
+      // bandome rezervuoti naują lovą
+      setFormEnabled(false); showReserveStatus(true);
+      const userName = getLocalUserName();
+      google.script.run
+        .withFailureHandler(err=>{
+          setFormEnabled(true); showReserveStatus(false);
+          alert('Nepavyko pakeisti lovos: '+((err&&err.message)||String(err||'')));
+        })
+        .withSuccessHandler(res=>{
+          setFormEnabled(true); showReserveStatus(false);
+          if(!res||!res.ok){ alert((res&&res.msg)?res.msg:'Nepavyko rezervuoti naujos lovos.'); return; }
+          // išleidžiam seną, atnaujinam būseną
+          releaseReservation();
+          reservation.bedLabel = bedLabel; reservation.ok = true;
+          startKeepAlive(bedLabel);
+          const bf=document.getElementById('fld-bed'); if(bf){ bf.value=bedLabel; }
+          validateConfirmEnabled();
+        })
+        .reserveBed({ bedLabel, userName });
+    });
   }
 
   // Triažo chip'ai + 1–5
