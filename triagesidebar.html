@@ -632,6 +632,8 @@
         btn.classList.add('active');
         // jei forma įjungta – galimai įjungti patvirtinimą
         validateConfirmEnabled();
+        // po gydytojo pasirinkimo fokusas į komentarą
+        const c=document.getElementById('fld-comment'); if(c){ c.focus(); }
       });
       box.appendChild(btn);
     });
@@ -748,9 +750,11 @@
     fetchAllAndRender();
   }
   function setFormEnabled(enabled){
-    ["fld-name","fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
+    ["fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=!enabled;
     });
+    // Vardą paliekame visada aktyvų, kad būtų galima įvesti iškart
+    const nameEl=document.getElementById("fld-name"); if(nameEl) nameEl.disabled=false;
     // taip pat įjungiame/išjungiame gydytojų mygtukus
     document.querySelectorAll('#doctor-list .doc-btn').forEach(btn=>{ btn.disabled = !enabled; });
   }
