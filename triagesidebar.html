@@ -833,8 +833,7 @@
       if(el){ document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
     }
     if(e.key==="Enter"){
-      const active=document.activeElement;
-      if(active && active.id==="fld-comment" && !e.ctrlKey) return;
+      e.preventDefault();
       const btn=document.getElementById("btn-confirm");
       if(!btn.disabled) btn.click();
     }
