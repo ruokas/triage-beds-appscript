@@ -371,27 +371,87 @@ function testBasicAccess() {
 function sidebarGetAll(payload) {
   console.log('sidebarGetAll: Starting with payload:', payload);
   
-  // Return hardcoded data for now to test if the function works at all
-  const testResult = {
-    zonesPayload: { 
-      beds: {
-        "Zona IT": { beds: [{ label: "IT1", occupied: false, patient: "", reservedByMe: false, reservedByOther: false, assignedAt: null }] },
-        "Zona 1": { beds: [{ label: "1", occupied: false, patient: "", reservedByMe: false, reservedByOther: false, assignedAt: null }] }
-      }
-    },
-    layout: [
-      { name: "Zona IT", rows: [["IT1", "IT2"]] },
-      { name: "Zona 1", rows: [["1", "2", "3"]] }
-    ],
-    doctors: ["Test Doctor 1", "Test Doctor 2"],
-    recent: [
-      { ts: "2025-01-23 16:38", user: "Test User", action: "Priskirta", summary: "Test action" }
-    ],
+  // Always return a valid object, even if there are errors
+  const fallbackResult = {
+    zonesPayload: { beds: {} },
+    layout: [],
+    doctors: [],
+    recent: [],
     now: new Date().toISOString()
   };
   
-  console.log('sidebarGetAll: Returning test result:', testResult);
-  return testResult;
+  try {
+    const userName = (payload && typeof payload === 'object') ? payload.userName : '';
+    console.log('sidebarGetAll: userName =', userName);
+    
+    // Step 1: Test ZONOS_LAYOUT
+    console.log('sidebarGetAll: Testing ZONOS_LAYOUT...');
+    if (typeof ZONOS_LAYOUT === 'undefined') {
+      console.error('sidebarGetAll: ZONOS_LAYOUT is undefined!');
+      return fallbackResult;
+    }
+    console.log('sidebarGetAll: ZONOS_LAYOUT exists, length =', ZONOS_LAYOUT.length);
+    
+    // Step 2: Create layout
+    console.log('sidebarGetAll: Creating layout...');
+    let layout = [];
+    try {
+      layout = ZONOS_LAYOUT.map(zone => ({
+        name: zone.name,
+        rows: zone.rows.map(row => row.slice())
+      }));
+      console.log('sidebarGetAll: Layout created successfully, length =', layout.length);
+    } catch (e) {
+      console.error('sidebarGetAll: Error creating layout:', e);
+      layout = [];
+    }
+    
+    // Step 3: Get zones payload
+    console.log('sidebarGetAll: Getting zones payload...');
+    let zonesPayload = { beds: {} };
+    try {
+      zonesPayload = getLiveZoneData(userName);
+      console.log('sidebarGetAll: Zones payload retrieved successfully');
+    } catch (e) {
+      console.error('sidebarGetAll: Error in getLiveZoneData:', e);
+    }
+    
+    // Step 4: Get doctors
+    console.log('sidebarGetAll: Getting doctors...');
+    let doctors = [];
+    try {
+      doctors = getDoctorsList_();
+      console.log('sidebarGetAll: Doctors retrieved successfully, count =', doctors.length);
+    } catch (e) {
+      console.error('sidebarGetAll: Error in getDoctorsList_:', e);
+    }
+    
+    // Step 5: Get recent actions
+    console.log('sidebarGetAll: Getting recent actions...');
+    let recent = [];
+    try {
+      recent = _getRecentActions_(8);
+      console.log('sidebarGetAll: Recent actions retrieved successfully, count =', recent.length);
+    } catch (e) {
+      console.error('sidebarGetAll: Error in _getRecentActions_:', e);
+    }
+    
+    // Step 6: Build result
+    const result = {
+      zonesPayload: zonesPayload || { beds: {} },
+      layout: layout || [],
+      doctors: doctors || [],
+      recent: recent || [],
+      now: new Date().toISOString()
+    };
+    
+    console.log('sidebarGetAll: Returning result successfully');
+    return result;
+  } catch (e) {
+    console.error('sidebarGetAll: Unexpected error:', e);
+    console.error('sidebarGetAll: Error stack:', e.stack);
+    return fallbackResult;
+  }
 }
 function _getRecentActions_(limit) {
   try {
