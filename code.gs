@@ -497,11 +497,24 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real bed data:', e);
     }
     
+    // Step 4: Add recent actions (with detailed logging)
+    let recent = [];
+    try {
+      console.log('sidebarGetAll: Getting recent actions...');
+      const recentActions = _getRecentActions_(8);
+      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions.length);
+      if (Array.isArray(recentActions)) {
+        recent = recentActions;
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error with recent actions:', e);
+    }
+    
     const result = {
       zonesPayload: zonesPayload,
       layout: layout,
       doctors: doctors,
-      recent: [],
+      recent: recent,
       now: new Date().toISOString()
     };
     
@@ -522,40 +535,79 @@ function sidebarGetAll(payload) {
 function _getRecentActions_(limit) {
   try {
     const sh = _sheet(LOG_SHEET);
-    if (!sh) return [];
+    if (!sh) {
+      console.log('_getRecentActions_: No log sheet found');
+      return [];
+    }
+    
     const last = sh.getLastRow();
-    if (last < 2) return [];
+    console.log('_getRecentActions_: Last row =', last);
+    if (last < 2) {
+      console.log('_getRecentActions_: No data rows (last row < 2)');
+      return [];
+    }
     
     // Check if we need to migrate the log sheet structure
     const headerRow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
     const hasStatusColumn = headerRow.includes('Status');
-    
-    let columnCount = LOG_HEADERS.length;
-    if (hasStatusColumn) {
-      // Old structure has Status column, so we need to read more columns
-      columnCount = LOG_HEADERS.length + 1; // +1 for Status column
-    }
+    console.log('_getRecentActions_: Has Status column =', hasStatusColumn);
+    console.log('_getRecentActions_: Headers =', headerRow);
     
     const n = Math.min(limit || 8, last - 1);
     const start = last - n + 1;
-    const values = sh.getRange(start, 1, n, columnCount).getValues();
+    console.log('_getRecentActions_: Reading rows', start, 'to', last, '(', n, 'rows)');
     
-    return values.map(r => {
+    // Read all available columns to be safe
+    const maxCols = sh.getLastColumn();
+    const values = sh.getRange(start, 1, n, maxCols).getValues();
+    console.log('_getRecentActions_: Raw values length =', values.length);
+    console.log('_getRecentActions_: First row sample =', values[0]);
+    
+    const results = values.map((r, index) => {
       // Handle both old and new column structures
+      let result;
       if (hasStatusColumn) {
-        // Old structure: skip Status column (index 3)
-        return {
-          ts: r[0], user: r[1], action: r[2], summary: r[4], // Skip r[3] which is Status
-          from: r[5], to: r[6], bed: r[7], patient: r[8], doctor: r[9], triage: r[10], comment: r[11]
+        // Old structure: Status is at index 3, so shift everything after
+        result = {
+          ts: r[0], 
+          user: r[1], 
+          action: r[2], 
+          summary: r[4], // Skip r[3] which is Status
+          from: r[5], 
+          to: r[6], 
+          bed: r[7], 
+          patient: r[8], 
+          doctor: r[9], 
+          triage: r[10], 
+          comment: r[11]
         };
       } else {
-        // New structure
-        return {
-          ts: r[0], user: r[1], action: r[2], summary: r[3],
-          from: r[4], to: r[5], bed: r[6], patient: r[7], doctor: r[8], triage: r[9], comment: r[10]
+        // New structure: no Status column
+        result = {
+          ts: r[0], 
+          user: r[1], 
+          action: r[2], 
+          summary: r[3],
+          from: r[4], 
+          to: r[5], 
+          bed: r[6], 
+          patient: r[7], 
+          doctor: r[8], 
+          triage: r[9], 
+          comment: r[10]
         };
       }
+      
+      if (index === 0) {
+        console.log('_getRecentActions_: Sample result =', result);
+      }
+      
+      return result;
     }).reverse();
+    
+    console.log('_getRecentActions_: Final results length =', results.length);
+    return results;
+    
   } catch (e) {
     console.error('Error in _getRecentActions_:', e);
     return [];
