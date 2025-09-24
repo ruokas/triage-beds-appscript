@@ -209,13 +209,16 @@
 </div>
 
 <script>
+console.log('=== SIDEBAR SCRIPT STARTING ===');
 (function(){
+  console.log('=== SIDEBAR SCRIPT INITIALIZING ===');
   let savedName = "";  // kas saugoma naršyklėje
   const el = document.getElementById("fld-username");
   const badge = document.getElementById("user-badge");
   const bText = document.getElementById("user-badge-text");
   const bIcon = document.getElementById("user-badge-icon");
   const USER_NAME_KEY = "triageBedsSidebar.userName";
+  console.log('=== SIDEBAR SCRIPT ELEMENTS FOUND ===', { el, badge, bText, bIcon });
 
   function setBadge(state){
     badge.classList.remove("b-ok","b-warn","b-muted","blink");
@@ -300,15 +303,36 @@
   // Test basic access on load
   setTimeout(() => {
     console.log('Running basic access test...');
-    google.script.run
-      .withSuccessHandler(result => {
-        console.log('Basic access test result:', result);
-      })
-      .withFailureHandler(err => {
-        console.error('Basic access test failed:', err);
-      })
-      .testBasicAccess();
+    try {
+      google.script.run
+        .withSuccessHandler(result => {
+          console.log('Basic access test result:', result);
+        })
+        .withFailureHandler(err => {
+          console.error('Basic access test failed:', err);
+        })
+        .testBasicAccess();
+    } catch (e) {
+      console.error('Error calling testBasicAccess:', e);
+    }
   }, 1000);
+  
+  // Also test the main data fetch
+  setTimeout(() => {
+    console.log('Testing main data fetch...');
+    try {
+      google.script.run
+        .withSuccessHandler(result => {
+          console.log('Main data fetch result:', result);
+        })
+        .withFailureHandler(err => {
+          console.error('Main data fetch failed:', err);
+        })
+        .sidebarGetAll({ userName: 'test' });
+    } catch (e) {
+      console.error('Error calling sidebarGetAll:', e);
+    }
+  }, 2000);
 })();
 </script>
 
@@ -494,7 +518,9 @@
 
   // ------- Duomenys + render -------
   function fetchAllAndRender(){
+    console.log('=== fetchAllAndRender CALLED ===');
     const userName = getLocalUserName();
+    console.log('=== fetchAllAndRender userName ===', userName);
     google.script.run
       .withSuccessHandler(({zonesPayload, layout, doctors, recent, now})=>{
         currentData=zonesPayload;
@@ -1239,7 +1265,13 @@
   window.addEventListener('resize', ()=>{ hideCtxMenu(); hideConfirm(); });
 
   // Start
-  function sidebarInit(){ loadSettings(); fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
+  function sidebarInit(){ 
+    console.log('=== sidebarInit CALLED ===');
+    loadSettings(); 
+    fetchAllAndRender(); 
+    refreshTimer=setInterval(fetchAllAndRender,10000); 
+    console.log('=== sidebarInit COMPLETED ===');
+  }
   function sidebarGetAll(){} // placeholder
   sidebarInit();
 
