@@ -708,22 +708,22 @@ function _getRecentActions_(limit) {
     // Check actual header structure
     const headerRow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
     console.log('_getRecentActions_: Headers =', headerRow);
+    console.log('_getRecentActions_: Using Lithuanian headers (no Status column)');
     
-    // Map actual header positions based on your real sheet structure:
-    // TimeISO | User | Action | Summary | From | To | Bed | Patient | Doctor | Triage | Status | Comment
+    // Map actual header positions based on your REAL sheet structure:
+    // Laikas | Naudotojas | Veiksmas | Aprašymas | Iš | Į | Lova | Pacientas | Gydytojas | Triažas | Komentaras
     const columnMap = {
-      ts: 0,        // TimeISO
-      user: 1,      // User  
-      action: 2,    // Action
-      summary: 3,   // Summary
-      from: 4,      // From
-      to: 5,        // To
-      bed: 6,       // Bed
-      patient: 7,   // Patient
-      doctor: 8,    // Doctor
-      triage: 9,    // Triage
-      // Skip Status at index 10
-      comment: 11   // Comment
+      ts: 0,        // Laikas
+      user: 1,      // Naudotojas  
+      action: 2,    // Veiksmas
+      summary: 3,   // Aprašymas
+      from: 4,      // Iš
+      to: 5,        // Į
+      bed: 6,       // Lova
+      patient: 7,   // Pacientas
+      doctor: 8,    // Gydytojas
+      triage: 9,    // Triažas
+      comment: 10   // Komentaras
     };
     
     const n = Math.min(limit || 8, last - 1);
