@@ -543,9 +543,13 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         
         const {zonesPayload, layout, doctors, recent, now} = result;
         console.log('fetchAllAndRender: Destructured data:', {zonesPayload, layout, doctors, recent, now});
+        console.log('fetchAllAndRender: layout type =', typeof layout);
+        console.log('fetchAllAndRender: layout isArray =', Array.isArray(layout));
+        console.log('fetchAllAndRender: layout length =', layout ? layout.length : 'N/A');
         
         currentData=zonesPayload;
         currentLayout=Array.isArray(layout)?layout:null;
+        console.log('fetchAllAndRender: currentLayout =', currentLayout);
         renderZones(zonesPayload, layout);
         populateDoctors(doctors);
         renderRecent(recent || []);

@@ -359,11 +359,13 @@ function sidebarGetAll(payload) {
     const userName = (payload && typeof payload === 'object') ? payload.userName : '';
     console.log('sidebarGetAll: userName =', userName);
     
+    console.log('sidebarGetAll: ZONOS_LAYOUT =', ZONOS_LAYOUT);
     const layout = ZONOS_LAYOUT.map(zone => ({
       name: zone.name,
       rows: zone.rows.map(row => row.slice())
     }));
     console.log('sidebarGetAll: layout created, length =', layout.length);
+    console.log('sidebarGetAll: layout =', layout);
     
     console.log('sidebarGetAll: Getting zonesPayload...');
     let zonesPayload;
