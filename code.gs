@@ -424,10 +424,22 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real layout:', e);
     }
     
+    // Step 2: Try real doctors
+    let doctors = ["Dr. Test"];
+    try {
+      const realDoctors = getDoctorsList_();
+      console.log('sidebarGetAll: Real doctors retrieved, count =', realDoctors.length);
+      if (Array.isArray(realDoctors) && realDoctors.length > 0) {
+        doctors = realDoctors;
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error with real doctors:', e);
+    }
+    
     const result = {
       zonesPayload: { beds: {} },
       layout: layout,
-      doctors: ["Dr. Test"],
+      doctors: doctors,
       recent: [],
       now: new Date().toISOString()
     };
