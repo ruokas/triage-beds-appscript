@@ -371,81 +371,27 @@ function testBasicAccess() {
 function sidebarGetAll(payload) {
   console.log('sidebarGetAll: Starting with payload:', payload);
   
-  // Always return a valid object, even if there are errors
-  const fallbackResult = {
-    zonesPayload: { beds: {} },
-    layout: [],
-    doctors: [],
-    recent: [],
+  // Return hardcoded data for now to test if the function works at all
+  const testResult = {
+    zonesPayload: { 
+      beds: {
+        "Zona IT": { beds: [{ label: "IT1", occupied: false, patient: "", reservedByMe: false, reservedByOther: false, assignedAt: null }] },
+        "Zona 1": { beds: [{ label: "1", occupied: false, patient: "", reservedByMe: false, reservedByOther: false, assignedAt: null }] }
+      }
+    },
+    layout: [
+      { name: "Zona IT", rows: [["IT1", "IT2"]] },
+      { name: "Zona 1", rows: [["1", "2", "3"]] }
+    ],
+    doctors: ["Test Doctor 1", "Test Doctor 2"],
+    recent: [
+      { ts: "2025-01-23 16:38", user: "Test User", action: "Priskirta", summary: "Test action" }
+    ],
     now: new Date().toISOString()
   };
   
-  try {
-    const userName = (payload && typeof payload === 'object') ? payload.userName : '';
-    console.log('sidebarGetAll: userName =', userName);
-    
-    // Test if ZONOS_LAYOUT exists
-    if (typeof ZONOS_LAYOUT === 'undefined') {
-      console.error('sidebarGetAll: ZONOS_LAYOUT is undefined!');
-      return fallbackResult;
-    }
-    
-    console.log('sidebarGetAll: ZONOS_LAYOUT =', ZONOS_LAYOUT);
-    
-    // Create layout safely
-    let layout = [];
-    try {
-      layout = ZONOS_LAYOUT.map(zone => ({
-        name: zone.name,
-        rows: zone.rows.map(row => row.slice())
-      }));
-      console.log('sidebarGetAll: layout created, length =', layout.length);
-    } catch (e) {
-      console.error('Error creating layout:', e);
-      layout = [];
-    }
-    
-    // Get zones payload safely
-    let zonesPayload = { beds: {} };
-    try {
-      zonesPayload = getLiveZoneData(userName);
-      console.log('sidebarGetAll: zonesPayload =', zonesPayload);
-    } catch (e) {
-      console.error('Error in getLiveZoneData:', e);
-    }
-    
-    // Get doctors safely
-    let doctors = [];
-    try {
-      doctors = getDoctorsList_();
-      console.log('sidebarGetAll: doctors =', doctors);
-    } catch (e) {
-      console.error('Error in getDoctorsList_:', e);
-    }
-    
-    // Get recent actions safely
-    let recent = [];
-    try {
-      recent = _getRecentActions_(8);
-      console.log('sidebarGetAll: recent =', recent);
-    } catch (e) {
-      console.error('Error in _getRecentActions_:', e);
-    }
-    
-    const result = {
-      zonesPayload: zonesPayload || { beds: {} },
-      layout: layout || [],
-      doctors: doctors || [],
-      recent: recent || [],
-      now: new Date().toISOString()
-    };
-    console.log('sidebarGetAll: Returning result:', result);
-    return result;
-  } catch (e) {
-    console.error('Error in sidebarGetAll:', e);
-    console.error('Error stack:', e.stack);
-    return fallbackResult;
-  }
+  console.log('sidebarGetAll: Returning test result:', testResult);
+  return testResult;
 }
 function _getRecentActions_(limit) {
   try {
