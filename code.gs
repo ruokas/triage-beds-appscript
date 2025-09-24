@@ -315,6 +315,43 @@ function testUltraSimple() {
   };
 }
 
+function testSheetBasics() {
+  console.log('=== TEST SHEET BASICS ===');
+  try {
+    console.log('testSheetBasics: Getting spreadsheet...');
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    console.log('testSheetBasics: Spreadsheet found:', !!spreadsheet);
+    
+    if (!spreadsheet) {
+      return {
+        success: false,
+        message: 'No active spreadsheet',
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    console.log('testSheetBasics: Getting sheet names...');
+    const sheetNames = spreadsheet.getSheets().map(s => s.getName());
+    console.log('testSheetBasics: Sheet names:', sheetNames);
+    
+    return {
+      success: true,
+      message: 'Sheet basics work',
+      sheetNames: sheetNames,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (e) {
+    console.error('testSheetBasics: Error:', e);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'Sheet basics failed',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testBasicSheetAccess() {
   console.log('=== TEST BASIC SHEET ACCESS ===');
   try {

@@ -362,6 +362,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-log-sheet-access" style="margin: 5px; padding: 5px 10px;">Test Log Sheet Access</button>
   <button id="test-simple-data-read" style="margin: 5px; padding: 5px 10px;">Test Simple Data Read</button>
   <button id="test-ultra-simple" style="margin: 5px; padding: 5px 10px;">Test Ultra Simple</button>
+  <button id="test-sheet-basics" style="margin: 5px; padding: 5px 10px;">Test Sheet Basics</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1558,6 +1559,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Ultra Simple test failed: ' + err);
       })
       .testUltraSimple();
+  });
+  
+  document.getElementById('test-sheet-basics').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Sheet Basics ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Sheet Basics test result:', result);
+        alert('Sheet Basics test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Sheet Basics test failed:', err);
+        alert('Sheet Basics test failed: ' + err);
+      })
+      .testSheetBasics();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {
