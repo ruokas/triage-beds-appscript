@@ -408,12 +408,25 @@ function sidebarGetAll(payload) {
   try {
     console.log('sidebarGetAll: About to return basic result');
     
+    // Step 1: Try real layout
+    let layout = [
+      { name: "Zona IT", rows: [["IT1","IT2"]] },
+      { name: "Zona 1", rows: [["1","2","3","P1","P2","P3"]] }
+    ];
+    try {
+      const realLayout = ZONOS_LAYOUT.map(zone => ({
+        name: zone.name,
+        rows: zone.rows.map(row => row.slice())
+      }));
+      console.log('sidebarGetAll: Real layout created, length =', realLayout.length);
+      layout = realLayout;
+    } catch (e) {
+      console.error('sidebarGetAll: Error with real layout:', e);
+    }
+    
     const result = {
       zonesPayload: { beds: {} },
-      layout: [
-        { name: "Zona IT", rows: [["IT1","IT2"]] },
-        { name: "Zona 1", rows: [["1","2","3","P1","P2","P3"]] }
-      ],
+      layout: layout,
       doctors: ["Dr. Test"],
       recent: [],
       now: new Date().toISOString()
