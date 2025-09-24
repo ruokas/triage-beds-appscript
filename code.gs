@@ -306,6 +306,18 @@ function testEvenSimpler() {
   return 'Hello from Google Apps Script';
 }
 
+function testSidebarGetAllSimple() {
+  return {
+    zonesPayload: { beds: {} },
+    layout: [
+      { name: "Test Zone", rows: [["1", "2", "3"]] }
+    ],
+    doctors: ["Test Doctor"],
+    recent: [],
+    now: new Date().toISOString()
+  };
+}
+
 function testBasicAccess() {
   try {
     console.log('=== TESTING BASIC ACCESS ===');

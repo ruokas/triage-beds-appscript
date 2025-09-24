@@ -350,6 +350,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <h4>Debug Tools</h4>
   <button id="test-even-simpler" style="margin: 5px; padding: 5px 10px;">Test Even Simpler</button>
   <button id="test-simple-return" style="margin: 5px; padding: 5px 10px;">Test Simple Return</button>
+  <button id="test-sidebar-simple" style="margin: 5px; padding: 5px 10px;">Test Sidebar Simple</button>
   <button id="test-basic-access" style="margin: 5px; padding: 5px 10px;">Test Basic Access</button>
   <button id="test-data-fetch" style="margin: 5px; padding: 5px 10px;">Test Data Fetch</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
@@ -1329,6 +1330,26 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Simple return test failed: ' + err);
       })
       .testSimpleReturn();
+  });
+  
+  document.getElementById('test-sidebar-simple').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Sidebar Simple ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Sidebar simple test result:', result);
+        alert('Sidebar simple test completed. Check console for details.');
+        // Test if this data would work for rendering
+        if (result && result.layout && Array.isArray(result.layout)) {
+          console.log('Layout is valid array, length:', result.layout.length);
+        } else {
+          console.log('Layout is invalid:', result.layout);
+        }
+      })
+      .withFailureHandler(err => {
+        console.error('Sidebar simple test failed:', err);
+        alert('Sidebar simple test failed: ' + err);
+      })
+      .testSidebarGetAllSimple();
   });
   
   document.getElementById('test-basic-access').addEventListener('click', () => {
