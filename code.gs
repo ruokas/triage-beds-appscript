@@ -436,8 +436,22 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real doctors:', e);
     }
     
+    // Step 3: Try real bed data (this was the suspected culprit)
+    let zonesPayload = { beds: {} };
+    try {
+      console.log('sidebarGetAll: About to call getLiveZoneData...');
+      const realBedData = getLiveZoneData('test-user');
+      console.log('sidebarGetAll: getLiveZoneData returned, type:', typeof realBedData);
+      if (realBedData && typeof realBedData === 'object') {
+        zonesPayload = realBedData;
+        console.log('sidebarGetAll: Real bed data assigned successfully');
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error with real bed data:', e);
+    }
+    
     const result = {
-      zonesPayload: { beds: {} },
+      zonesPayload: zonesPayload,
       layout: layout,
       doctors: doctors,
       recent: [],
