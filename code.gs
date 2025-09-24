@@ -415,6 +415,7 @@ function sidebarGetAll(payload) {
     try {
       zonesPayload = getLiveZoneData(userName);
       console.log('sidebarGetAll: Zones payload retrieved successfully');
+      console.log('sidebarGetAll: zonesPayload structure:', JSON.stringify(zonesPayload, null, 2));
     } catch (e) {
       console.error('sidebarGetAll: Error in getLiveZoneData:', e);
     }
@@ -449,6 +450,7 @@ function sidebarGetAll(payload) {
     };
     
     console.log('sidebarGetAll: Returning result successfully');
+    console.log('sidebarGetAll: Final result structure:', JSON.stringify(result, null, 2));
     return result;
   } catch (e) {
     console.error('sidebarGetAll: Unexpected error:', e);
