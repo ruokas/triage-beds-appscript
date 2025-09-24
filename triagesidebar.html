@@ -348,6 +348,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
 <!-- Debug buttons -->
 <div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">
   <h4>Debug Tools</h4>
+  <button id="test-simple-return" style="margin: 5px; padding: 5px 10px;">Test Simple Return</button>
   <button id="test-basic-access" style="margin: 5px; padding: 5px 10px;">Test Basic Access</button>
   <button id="test-data-fetch" style="margin: 5px; padding: 5px 10px;">Test Data Fetch</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
@@ -1301,6 +1302,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   sidebarInit();
   
   // Debug button event listeners
+  document.getElementById('test-simple-return').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Simple Return ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Simple return test result:', result);
+        alert('Simple return test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Simple return test failed:', err);
+        alert('Simple return test failed: ' + err);
+      })
+      .testSimpleReturn();
+  });
+  
   document.getElementById('test-basic-access').addEventListener('click', () => {
     console.log('=== MANUAL TEST: Basic Access ===');
     google.script.run
