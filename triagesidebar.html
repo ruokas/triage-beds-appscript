@@ -357,6 +357,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-recent-actions" style="margin: 5px; padding: 5px 10px;">Test Recent Actions</button>
   <button id="test-get-recent" style="margin: 5px; padding: 5px 10px;">Test Get Recent</button>
   <button id="test-get-recent-direct" style="margin: 5px; padding: 5px 10px;">Test Get Recent Direct</button>
+  <button id="test-function-exists" style="margin: 5px; padding: 5px 10px;">Test Function Exists</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1483,6 +1484,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Get Recent Direct test failed: ' + err);
       })
       .testGetRecentActionsDirect();
+  });
+  
+  document.getElementById('test-function-exists').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Function Exists ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Function Exists test result:', result);
+        alert('Function Exists test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Function Exists test failed:', err);
+        alert('Function Exists test failed: ' + err);
+      })
+      .testFunctionExists();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {

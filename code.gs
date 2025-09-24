@@ -306,6 +306,19 @@ function testEvenSimpler() {
   return 'Hello from Google Apps Script - Updated Version';
 }
 
+function testFunctionExists() {
+  console.log('=== TEST FUNCTION EXISTS ===');
+  console.log('testFunctionExists: getRecentActions exists:', typeof getRecentActions);
+  console.log('testFunctionExists: _getRecentActions_ exists:', typeof _getRecentActions_);
+  return {
+    success: true,
+    message: 'Function existence test completed',
+    getRecentActionsExists: typeof getRecentActions,
+    _getRecentActions_Exists: typeof _getRecentActions_,
+    timestamp: new Date().toISOString()
+  };
+}
+
 function testSidebarGetAllDirect() {
   console.log('=== DIRECT TEST FUNCTION CALLED ===');
   return {
