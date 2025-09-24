@@ -295,12 +295,15 @@ function _logAction_(o) {
 
 /** ===================== TEST FUNCTIONS ===================== **/
 function testSimpleReturn() {
-  console.log('testSimpleReturn: Starting...');
   return {
     success: true,
     message: 'Simple test function works',
     timestamp: new Date().toISOString()
   };
+}
+
+function testEvenSimpler() {
+  return 'Hello from Google Apps Script';
 }
 
 function testBasicAccess() {

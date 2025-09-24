@@ -348,6 +348,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
 <!-- Debug buttons -->
 <div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">
   <h4>Debug Tools</h4>
+  <button id="test-even-simpler" style="margin: 5px; padding: 5px 10px;">Test Even Simpler</button>
   <button id="test-simple-return" style="margin: 5px; padding: 5px 10px;">Test Simple Return</button>
   <button id="test-basic-access" style="margin: 5px; padding: 5px 10px;">Test Basic Access</button>
   <button id="test-data-fetch" style="margin: 5px; padding: 5px 10px;">Test Data Fetch</button>
@@ -1302,6 +1303,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   sidebarInit();
   
   // Debug button event listeners
+  document.getElementById('test-even-simpler').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Even Simpler ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Even simpler test result:', result);
+        alert('Even simpler test completed: ' + result);
+      })
+      .withFailureHandler(err => {
+        console.error('Even simpler test failed:', err);
+        alert('Even simpler test failed: ' + err);
+      })
+      .testEvenSimpler();
+  });
+  
   document.getElementById('test-simple-return').addEventListener('click', () => {
     console.log('=== MANUAL TEST: Simple Return ===');
     google.script.run
