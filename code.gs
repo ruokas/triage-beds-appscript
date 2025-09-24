@@ -497,18 +497,9 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real bed data:', e);
     }
     
-    // Step 4: Add recent actions (with detailed logging)
+    // Step 4: Recent actions disabled for testing
     let recent = [];
-    try {
-      console.log('sidebarGetAll: Getting recent actions...');
-      const recentActions = _getRecentActions_(8);
-      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions.length);
-      if (Array.isArray(recentActions)) {
-        recent = recentActions;
-      }
-    } catch (e) {
-      console.error('sidebarGetAll: Error with recent actions:', e);
-    }
+    console.log('sidebarGetAll: Recent actions disabled for testing');
     
     const result = {
       zonesPayload: zonesPayload,
