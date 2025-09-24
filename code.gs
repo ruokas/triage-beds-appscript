@@ -369,6 +369,7 @@ function testBasicAccess() {
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
+  console.log('=== SIDEBAR_GET_ALL FUNCTION CALLED ===');
   console.log('sidebarGetAll: Starting with payload:', payload);
   
   // Always return a valid object, even if there are errors
@@ -379,6 +380,12 @@ function sidebarGetAll(payload) {
     recent: [],
     now: new Date().toISOString()
   };
+  
+  console.log('sidebarGetAll: Fallback result created:', fallbackResult);
+  
+  // TEMPORARY: Return fallback immediately to test if function works
+  console.log('sidebarGetAll: Returning fallback immediately for testing');
+  return fallbackResult;
   
   try {
     const userName = (payload && typeof payload === 'object') ? payload.userName : '';
