@@ -306,6 +306,46 @@ function testEvenSimpler() {
   return 'Hello from Google Apps Script - Updated Version';
 }
 
+function testBasicSheetAccess() {
+  console.log('=== TEST BASIC SHEET ACCESS ===');
+  try {
+    console.log('testBasicSheetAccess: Starting...');
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    console.log('testBasicSheetAccess: Spreadsheet found:', !!spreadsheet);
+    
+    const sheet = spreadsheet.getSheetByName('VEIKSMŲ ŽURNALAS');
+    console.log('testBasicSheetAccess: Sheet found:', !!sheet);
+    
+    if (!sheet) {
+      return {
+        success: false,
+        message: 'Sheet not found',
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    const lastRow = sheet.getLastRow();
+    console.log('testBasicSheetAccess: Last row:', lastRow);
+    
+    return {
+      success: true,
+      message: 'Basic sheet access works',
+      sheetFound: !!sheet,
+      lastRow: lastRow,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (e) {
+    console.error('testBasicSheetAccess: Error:', e);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'Basic sheet access failed',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testFunctionExists() {
   console.log('=== TEST FUNCTION EXISTS ===');
   console.log('testFunctionExists: getRecentActions exists:', typeof getRecentActions);
