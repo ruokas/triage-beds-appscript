@@ -319,6 +319,37 @@ function testFunctionExists() {
   };
 }
 
+function testGetRecentActionsDirect() {
+  console.log('=== TEST _getRecentActions_ DIRECT ===');
+  try {
+    console.log('testGetRecentActionsDirect: About to call _getRecentActions_(3)');
+    const result = _getRecentActions_(3);
+    console.log('testGetRecentActionsDirect: _getRecentActions_ returned:', result);
+    console.log('testGetRecentActionsDirect: Result type:', typeof result);
+    console.log('testGetRecentActionsDirect: Result isArray:', Array.isArray(result));
+    console.log('testGetRecentActionsDirect: Result length:', result ? result.length : 'null');
+    
+    return {
+      success: true,
+      message: 'Direct _getRecentActions_ test completed',
+      result: result,
+      resultType: typeof result,
+      isArray: Array.isArray(result),
+      length: result ? result.length : 0,
+      timestamp: new Date().toISOString()
+    };
+  } catch (e) {
+    console.error('testGetRecentActionsDirect: Error:', e);
+    console.error('testGetRecentActionsDirect: Error stack:', e.stack);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'Direct _getRecentActions_ test failed',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testSidebarGetAllDirect() {
   console.log('=== DIRECT TEST FUNCTION CALLED ===');
   return {
