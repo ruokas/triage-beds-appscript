@@ -497,12 +497,20 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real bed data:', e);
     }
     
-    // Step 4: Recent actions with safe fallback
+    // Step 4: Recent actions (now fixed!)
     let recent = [];
-    
-    // Skip recent actions for now - keep system stable
-    console.log('sidebarGetAll: Skipping recent actions to maintain stability');
-    // TODO: Debug recent actions separately and integrate later
+    try {
+      console.log('sidebarGetAll: Getting recent actions with fixed column mapping...');
+      const recentActions = _getRecentActions_(8);
+      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions ? recentActions.length : 'null');
+      if (Array.isArray(recentActions)) {
+        recent = recentActions;
+        console.log('sidebarGetAll: Recent actions integrated successfully');
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error with recent actions (fallback to empty):', e);
+      recent = [];
+    }
     
     const result = {
       zonesPayload: zonesPayload,
