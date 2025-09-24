@@ -345,6 +345,15 @@ function testBasicAccess() {
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
+  // Always return a valid object, even if there are errors
+  const fallbackResult = {
+    zonesPayload: { beds: {} },
+    layout: [],
+    doctors: [],
+    recent: [],
+    now: new Date().toISOString()
+  };
+  
   try {
     console.log('sidebarGetAll: Starting with payload:', payload);
     const userName = (payload && typeof payload === 'object') ? payload.userName : '';
@@ -357,22 +366,40 @@ function sidebarGetAll(payload) {
     console.log('sidebarGetAll: layout created, length =', layout.length);
     
     console.log('sidebarGetAll: Getting zonesPayload...');
-    const zonesPayload = getLiveZoneData(userName);
-    console.log('sidebarGetAll: zonesPayload =', zonesPayload);
+    let zonesPayload;
+    try {
+      zonesPayload = getLiveZoneData(userName);
+      console.log('sidebarGetAll: zonesPayload =', zonesPayload);
+    } catch (e) {
+      console.error('Error in getLiveZoneData:', e);
+      zonesPayload = { beds: {} };
+    }
     
     console.log('sidebarGetAll: Getting doctors...');
-    const doctors = getDoctorsList_();
-    console.log('sidebarGetAll: doctors =', doctors);
+    let doctors;
+    try {
+      doctors = getDoctorsList_();
+      console.log('sidebarGetAll: doctors =', doctors);
+    } catch (e) {
+      console.error('Error in getDoctorsList_:', e);
+      doctors = [];
+    }
     
     console.log('sidebarGetAll: Getting recent actions...');
-    const recent = _getRecentActions_(8);
-    console.log('sidebarGetAll: recent =', recent);
+    let recent;
+    try {
+      recent = _getRecentActions_(8);
+      console.log('sidebarGetAll: recent =', recent);
+    } catch (e) {
+      console.error('Error in _getRecentActions_:', e);
+      recent = [];
+    }
     
     const result = {
-      zonesPayload,
-      layout,
-      doctors,
-      recent,
+      zonesPayload: zonesPayload || { beds: {} },
+      layout: layout || [],
+      doctors: doctors || [],
+      recent: recent || [],
       now: new Date().toISOString()
     };
     console.log('sidebarGetAll: Returning result:', result);
@@ -381,13 +408,7 @@ function sidebarGetAll(payload) {
     console.error('Error in sidebarGetAll:', e);
     console.error('Error stack:', e.stack);
     // Return minimal data to prevent complete failure
-    return {
-      zonesPayload: { beds: {} },
-      layout: [],
-      doctors: [],
-      recent: [],
-      now: new Date().toISOString()
-    };
+    return fallbackResult;
   }
 }
 function _getRecentActions_(limit) {

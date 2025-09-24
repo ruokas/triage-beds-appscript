@@ -530,7 +530,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
     const userName = getLocalUserName();
     console.log('=== fetchAllAndRender userName ===', userName);
     google.script.run
-      .withSuccessHandler(({zonesPayload, layout, doctors, recent, now})=>{
+      .withSuccessHandler((result)=>{
+        console.log('fetchAllAndRender: Success handler called with result:', result);
+        
+        // Check if result is null or invalid
+        if (!result || typeof result !== 'object') {
+          console.error('fetchAllAndRender: Invalid result received:', result);
+          document.getElementById("last-updated").textContent="Klaida: Netinkami duomenys iš serverio";
+          renderZones({ beds: {} }, []);
+          return;
+        }
+        
+        const {zonesPayload, layout, doctors, recent, now} = result;
+        console.log('fetchAllAndRender: Destructured data:', {zonesPayload, layout, doctors, recent, now});
+        
         currentData=zonesPayload;
         currentLayout=Array.isArray(layout)?layout:null;
         renderZones(zonesPayload, layout);
@@ -539,7 +552,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
       })
       .withFailureHandler(err => {
-        console.error('Error fetching data:', err);
+        console.error('fetchAllAndRender: Error fetching data:', err);
         document.getElementById("last-updated").textContent="Klaida: "+String(err);
         // Try to render with empty data to show something
         renderZones({ beds: {} }, []);
