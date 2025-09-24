@@ -421,10 +421,28 @@ function sidebarGetAll(payload) {
     try {
       const realBedData = getLiveZoneData(userName);
       console.log('sidebarGetAll: Bed data retrieved successfully');
-      console.log('sidebarGetAll: realBedData structure:', JSON.stringify(realBedData, null, 2));
+      console.log('sidebarGetAll: realBedData type:', typeof realBedData);
       if (realBedData && typeof realBedData === 'object') {
         zonesPayload = realBedData;
         console.log('sidebarGetAll: zonesPayload.beds keys:', Object.keys(zonesPayload.beds || {}));
+        // Log a sample of the bed data structure safely
+        const bedKeys = Object.keys(zonesPayload.beds || {});
+        if (bedKeys.length > 0) {
+          const firstZone = bedKeys[0];
+          const firstZoneBeds = zonesPayload.beds[firstZone];
+          console.log('sidebarGetAll: Sample zone:', firstZone);
+          console.log('sidebarGetAll: Sample zone structure:', typeof firstZoneBeds);
+          if (firstZoneBeds && firstZoneBeds.beds && Array.isArray(firstZoneBeds.beds)) {
+            console.log('sidebarGetAll: Sample zone beds count:', firstZoneBeds.beds.length);
+            if (firstZoneBeds.beds.length > 0) {
+              console.log('sidebarGetAll: First bed sample:', {
+                label: firstZoneBeds.beds[0].label,
+                occupied: firstZoneBeds.beds[0].occupied,
+                patient: firstZoneBeds.beds[0].patient
+              });
+            }
+          }
+        }
       }
     } catch (e) {
       console.error('sidebarGetAll: Error getting bed data:', e);
