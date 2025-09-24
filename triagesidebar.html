@@ -360,6 +360,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-function-exists" style="margin: 5px; padding: 5px 10px;">Test Function Exists</button>
   <button id="test-get-recent-actions-direct" style="margin: 5px; padding: 5px 10px;">Test _getRecentActions_ Direct</button>
   <button id="test-log-sheet-access" style="margin: 5px; padding: 5px 10px;">Test Log Sheet Access</button>
+  <button id="test-simple-data-read" style="margin: 5px; padding: 5px 10px;">Test Simple Data Read</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1528,6 +1529,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Log Sheet Access test failed: ' + err);
       })
       .testLogSheetAccess();
+  });
+  
+  document.getElementById('test-simple-data-read').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Simple Data Read ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Simple Data Read test result:', result);
+        alert('Simple Data Read test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Simple Data Read test failed:', err);
+        alert('Simple Data Read test failed: ' + err);
+      })
+      .testSimpleDataRead();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {

@@ -405,6 +405,75 @@ function testLogSheetAccess() {
   }
 }
 
+function testSimpleDataRead() {
+  console.log('=== TEST SIMPLE DATA READ ===');
+  try {
+    const sh = _sheet(LOG_SHEET);
+    if (!sh) {
+      return {
+        success: false,
+        message: 'Sheet not found',
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    const lastRow = sh.getLastRow();
+    console.log('testSimpleDataRead: Last row:', lastRow);
+    
+    if (lastRow < 2) {
+      return {
+        success: true,
+        message: 'No data rows',
+        lastRow: lastRow,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // Read just 2 rows (header + 1 data row)
+    const values = sh.getRange(1, 1, 2, sh.getLastColumn()).getValues();
+    console.log('testSimpleDataRead: Raw values:', values);
+    
+    // Try to map the first data row
+    const dataRow = values[1]; // Second row (first data row)
+    console.log('testSimpleDataRead: Data row:', dataRow);
+    
+    const mappedData = {
+      ts: dataRow[0] || '',
+      user: dataRow[1] || '',
+      action: dataRow[2] || '',
+      summary: dataRow[3] || '',
+      from: dataRow[4] || '',
+      to: dataRow[5] || '',
+      bed: dataRow[6] || '',
+      patient: dataRow[7] || '',
+      doctor: dataRow[8] || '',
+      triage: dataRow[9] || '',
+      comment: dataRow[10] || ''
+    };
+    
+    console.log('testSimpleDataRead: Mapped data:', mappedData);
+    
+    return {
+      success: true,
+      message: 'Simple data read completed',
+      lastRow: lastRow,
+      rawValues: values,
+      mappedData: mappedData,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (e) {
+    console.error('testSimpleDataRead: Error:', e);
+    console.error('testSimpleDataRead: Error stack:', e.stack);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'Simple data read failed',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testSidebarGetAllDirect() {
   console.log('=== DIRECT TEST FUNCTION CALLED ===');
   return {
