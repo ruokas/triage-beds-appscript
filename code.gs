@@ -293,6 +293,56 @@ function _logAction_(o) {
   } catch(e) {}
 }
 
+/** ===================== TEST FUNCTIONS ===================== **/
+function testBasicAccess() {
+  try {
+    console.log('=== TESTING BASIC ACCESS ===');
+    
+    // Test 1: Check if spreadsheet exists
+    const ss = _ss();
+    console.log('Spreadsheet:', ss);
+    if (!ss) {
+      console.error('ERROR: No active spreadsheet found!');
+      return { error: 'No active spreadsheet' };
+    }
+    
+    // Test 2: Check LENTA sheet
+    const lentaSheet = _sheet(SHEET_LENTA);
+    console.log('LENTA sheet:', lentaSheet);
+    if (!lentaSheet) {
+      console.error('ERROR: LENTA sheet not found!');
+      return { error: 'LENTA sheet not found' };
+    }
+    
+    // Test 3: Check PACIENTŲ SKIRSTYMAS sheet
+    const doctorsSheet = _sheet(DOCTORS_SHEET);
+    console.log('DOCTORS_SHEET:', doctorsSheet);
+    if (!doctorsSheet) {
+      console.error('ERROR: PACIENTŲ SKIRSTYMAS sheet not found!');
+      return { error: 'PACIENTŲ SKIRSTYMAS sheet not found' };
+    }
+    
+    // Test 4: Check LOG_SHEET
+    const logSheet = _sheet(LOG_SHEET);
+    console.log('LOG_SHEET:', logSheet);
+    
+    // Test 5: Try to read a simple range from LENTA
+    try {
+      const testRange = lentaSheet.getRange('A1:A5').getValues();
+      console.log('LENTA A1:A5 values:', testRange);
+    } catch (e) {
+      console.error('ERROR reading LENTA range:', e);
+    }
+    
+    console.log('=== BASIC ACCESS TEST COMPLETED ===');
+    return { success: true, message: 'All basic tests passed' };
+    
+  } catch (e) {
+    console.error('ERROR in testBasicAccess:', e);
+    return { error: e.toString() };
+  }
+}
+
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
   try {

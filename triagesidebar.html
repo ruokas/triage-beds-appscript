@@ -296,6 +296,19 @@
   el.addEventListener("keydown", e=>{
     if(e.key==="Enter"){ e.preventDefault(); saveNow(); }
   });
+  
+  // Test basic access on load
+  setTimeout(() => {
+    console.log('Running basic access test...');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Basic access test result:', result);
+      })
+      .withFailureHandler(err => {
+        console.error('Basic access test failed:', err);
+      })
+      .testBasicAccess();
+  }, 1000);
 })();
 </script>
 
