@@ -339,6 +339,53 @@ function testGetLiveZoneData() {
   }
 }
 
+function testGetRecentActions() {
+  console.log('=== TESTING _getRecentActions_ FUNCTION ===');
+  try {
+    // Test basic sheet access
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('VEIKSMŲ ŽURNALAS');
+    console.log('testGetRecentActions: Log sheet exists:', !!sh);
+    
+    if (!sh) {
+      return {
+        success: false,
+        message: 'Log sheet not found',
+        error: 'VEIKSMŲ ŽURNALAS sheet does not exist'
+      };
+    }
+    
+    const lastRow = sh.getLastRow();
+    console.log('testGetRecentActions: Last row:', lastRow);
+    
+    // Test header structure
+    const headerRow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    console.log('testGetRecentActions: Headers:', headerRow);
+    console.log('testGetRecentActions: Has Status column:', headerRow.includes('Status'));
+    
+    // Test the actual function
+    const result = _getRecentActions_(3);
+    console.log('testGetRecentActions: Result type:', typeof result);
+    console.log('testGetRecentActions: Result length:', Array.isArray(result) ? result.length : 'not array');
+    
+    return {
+      success: true,
+      message: '_getRecentActions_ test completed',
+      sheetExists: !!sh,
+      lastRow: lastRow,
+      headers: headerRow,
+      hasStatus: headerRow.includes('Status'),
+      resultLength: Array.isArray(result) ? result.length : 0
+    };
+  } catch (e) {
+    console.error('testGetRecentActions: Error:', e);
+    return {
+      success: false,
+      error: e.toString(),
+      message: '_getRecentActions_ test failed'
+    };
+  }
+}
+
 function testSidebarGetAllSimple() {
   return {
     zonesPayload: { beds: {} },
