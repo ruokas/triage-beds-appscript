@@ -383,10 +383,6 @@ function sidebarGetAll(payload) {
   
   console.log('sidebarGetAll: Fallback result created:', fallbackResult);
   
-  // TEMPORARY: Return fallback immediately to test if function works
-  console.log('sidebarGetAll: Returning fallback immediately for testing');
-  return fallbackResult;
-  
   try {
     const userName = (payload && typeof payload === 'object') ? payload.userName : '';
     console.log('sidebarGetAll: userName =', userName);
