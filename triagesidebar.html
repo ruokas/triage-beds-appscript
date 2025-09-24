@@ -353,6 +353,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-sidebar-simple" style="margin: 5px; padding: 5px 10px;">Test Sidebar Simple</button>
   <button id="test-basic-access" style="margin: 5px; padding: 5px 10px;">Test Basic Access</button>
   <button id="test-data-fetch" style="margin: 5px; padding: 5px 10px;">Test Data Fetch</button>
+  <button id="test-direct" style="margin: 5px; padding: 5px 10px;">Test Direct</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1378,6 +1379,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Data fetch test failed: ' + err);
       })
       .sidebarGetAll({ userName: 'manual-test' });
+  });
+  
+  document.getElementById('test-direct').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Direct ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Direct test result:', result);
+        alert('Direct test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Direct test failed:', err);
+        alert('Direct test failed: ' + err);
+      })
+      .testSidebarGetAllDirect();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {

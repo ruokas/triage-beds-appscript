@@ -303,7 +303,16 @@ function testSimpleReturn() {
 }
 
 function testEvenSimpler() {
-  return 'Hello from Google Apps Script';
+  return 'Hello from Google Apps Script - Updated Version';
+}
+
+function testSidebarGetAllDirect() {
+  console.log('=== DIRECT TEST FUNCTION CALLED ===');
+  return {
+    success: true,
+    message: 'Direct test function works',
+    timestamp: new Date().toISOString()
+  };
 }
 
 function testSidebarGetAllSimple() {
