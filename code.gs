@@ -450,24 +450,11 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real bed data:', e);
     }
     
-    // Step 4: Add recent actions
-    let recent = [];
-    try {
-      console.log('sidebarGetAll: Getting recent actions...');
-      const recentActions = _getRecentActions_(8);
-      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions.length);
-      if (Array.isArray(recentActions)) {
-        recent = recentActions;
-      }
-    } catch (e) {
-      console.error('sidebarGetAll: Error with recent actions:', e);
-    }
-    
     const result = {
       zonesPayload: zonesPayload,
       layout: layout,
       doctors: doctors,
-      recent: recent,
+      recent: [],
       now: new Date().toISOString()
     };
     
