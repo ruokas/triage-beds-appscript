@@ -398,25 +398,35 @@ function getRecentActions(payload) {
     const limit = (payload && payload.limit) ? payload.limit : 8;
     console.log('getRecentActions: Using limit:', limit);
     
+    console.log('getRecentActions: About to call _getRecentActions_...');
     const result = _getRecentActions_(limit);
+    console.log('getRecentActions: _getRecentActions_ returned:', result);
+    console.log('getRecentActions: Result type:', typeof result);
+    console.log('getRecentActions: Result isArray:', Array.isArray(result));
     console.log('getRecentActions: Got', result ? result.length : 0, 'items');
     
-    return {
+    const response = {
       success: true,
       recent: result || [],
       count: result ? result.length : 0,
       timestamp: new Date().toISOString()
     };
     
+    console.log('getRecentActions: Returning response:', response);
+    return response;
+    
   } catch (e) {
     console.error('getRecentActions: Error:', e);
-    return {
+    console.error('getRecentActions: Error stack:', e.stack);
+    const errorResponse = {
       success: false,
       recent: [],
       count: 0,
       error: e.toString(),
       timestamp: new Date().toISOString()
     };
+    console.log('getRecentActions: Returning error response:', errorResponse);
+    return errorResponse;
   }
 }
 
@@ -558,8 +568,10 @@ function sidebarGetAll(payload) {
   }
 }
 function _getRecentActions_(limit) {
+  console.log('_getRecentActions_: Function called with limit:', limit);
   try {
     const sh = _sheet(LOG_SHEET);
+    console.log('_getRecentActions_: Sheet found:', !!sh);
     if (!sh) {
       console.log('_getRecentActions_: No log sheet found');
       return [];
