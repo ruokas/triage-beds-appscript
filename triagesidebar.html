@@ -361,7 +361,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-get-recent-actions-direct" style="margin: 5px; padding: 5px 10px;">Test _getRecentActions_ Direct</button>
   <button id="test-log-sheet-access" style="margin: 5px; padding: 5px 10px;">Test Log Sheet Access</button>
   <button id="test-simple-data-read" style="margin: 5px; padding: 5px 10px;">Test Simple Data Read</button>
-  <button id="test-basic-sheet-access" style="margin: 5px; padding: 5px 10px;">Test Basic Sheet Access</button>
+  <button id="test-ultra-simple" style="margin: 5px; padding: 5px 10px;">Test Ultra Simple</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1546,18 +1546,18 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
       .testSimpleDataRead();
   });
   
-  document.getElementById('test-basic-sheet-access').addEventListener('click', () => {
-    console.log('=== MANUAL TEST: Basic Sheet Access ===');
+  document.getElementById('test-ultra-simple').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Ultra Simple ===');
     google.script.run
       .withSuccessHandler(result => {
-        console.log('Basic Sheet Access test result:', result);
-        alert('Basic Sheet Access test completed: ' + JSON.stringify(result));
+        console.log('Ultra Simple test result:', result);
+        alert('Ultra Simple test completed: ' + JSON.stringify(result));
       })
       .withFailureHandler(err => {
-        console.error('Basic Sheet Access test failed:', err);
-        alert('Basic Sheet Access test failed: ' + err);
+        console.error('Ultra Simple test failed:', err);
+        alert('Ultra Simple test failed: ' + err);
       })
-      .testBasicSheetAccess();
+      .testUltraSimple();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {

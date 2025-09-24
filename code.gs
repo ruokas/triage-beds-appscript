@@ -306,6 +306,15 @@ function testEvenSimpler() {
   return 'Hello from Google Apps Script - Updated Version';
 }
 
+function testUltraSimple() {
+  console.log('=== ULTRA SIMPLE TEST ===');
+  return {
+    success: true,
+    message: 'Ultra simple test works',
+    timestamp: new Date().toISOString()
+  };
+}
+
 function testBasicSheetAccess() {
   console.log('=== TEST BASIC SHEET ACCESS ===');
   try {
