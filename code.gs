@@ -541,56 +541,51 @@ function _getRecentActions_(limit) {
       return [];
     }
     
-    // Check if we need to migrate the log sheet structure
+    // Check actual header structure
     const headerRow = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-    const hasStatusColumn = headerRow.includes('Status');
-    console.log('_getRecentActions_: Has Status column =', hasStatusColumn);
     console.log('_getRecentActions_: Headers =', headerRow);
+    
+    // Map actual header positions based on your real sheet structure:
+    // TimeISO | User | Action | Summary | From | To | Bed | Patient | Doctor | Triage | Status | Comment
+    const columnMap = {
+      ts: 0,        // TimeISO
+      user: 1,      // User  
+      action: 2,    // Action
+      summary: 3,   // Summary
+      from: 4,      // From
+      to: 5,        // To
+      bed: 6,       // Bed
+      patient: 7,   // Patient
+      doctor: 8,    // Doctor
+      triage: 9,    // Triage
+      // Skip Status at index 10
+      comment: 11   // Comment
+    };
     
     const n = Math.min(limit || 8, last - 1);
     const start = last - n + 1;
     console.log('_getRecentActions_: Reading rows', start, 'to', last, '(', n, 'rows)');
     
-    // Read all available columns to be safe
+    // Read all available columns
     const maxCols = sh.getLastColumn();
     const values = sh.getRange(start, 1, n, maxCols).getValues();
     console.log('_getRecentActions_: Raw values length =', values.length);
     console.log('_getRecentActions_: First row sample =', values[0]);
     
     const results = values.map((r, index) => {
-      // Handle both old and new column structures
-      let result;
-      if (hasStatusColumn) {
-        // Old structure: Status is at index 3, so shift everything after
-        result = {
-          ts: r[0], 
-          user: r[1], 
-          action: r[2], 
-          summary: r[4], // Skip r[3] which is Status
-          from: r[5], 
-          to: r[6], 
-          bed: r[7], 
-          patient: r[8], 
-          doctor: r[9], 
-          triage: r[10], 
-          comment: r[11]
-        };
-      } else {
-        // New structure: no Status column
-        result = {
-          ts: r[0], 
-          user: r[1], 
-          action: r[2], 
-          summary: r[3],
-          from: r[4], 
-          to: r[5], 
-          bed: r[6], 
-          patient: r[7], 
-          doctor: r[8], 
-          triage: r[9], 
-          comment: r[10]
-        };
-      }
+      const result = {
+        ts: r[columnMap.ts] || '', 
+        user: r[columnMap.user] || '', 
+        action: r[columnMap.action] || '', 
+        summary: r[columnMap.summary] || '',
+        from: r[columnMap.from] || '', 
+        to: r[columnMap.to] || '', 
+        bed: r[columnMap.bed] || '', 
+        patient: r[columnMap.patient] || '', 
+        doctor: r[columnMap.doctor] || '', 
+        triage: r[columnMap.triage] || '', 
+        comment: r[columnMap.comment] || ''
+      };
       
       if (index === 0) {
         console.log('_getRecentActions_: Sample result =', result);
