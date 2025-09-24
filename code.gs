@@ -497,9 +497,12 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real bed data:', e);
     }
     
-    // Step 4: Recent actions disabled for testing
+    // Step 4: Recent actions with safe fallback
     let recent = [];
-    console.log('sidebarGetAll: Recent actions disabled for testing');
+    
+    // Skip recent actions for now - keep system stable
+    console.log('sidebarGetAll: Skipping recent actions to maintain stability');
+    // TODO: Debug recent actions separately and integrate later
     
     const result = {
       zonesPayload: zonesPayload,
