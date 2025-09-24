@@ -561,6 +561,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
         
         // Separately load recent actions (won't break main functionality)
+        console.log('fetchAllAndRender: About to call fetchRecentActions...');
         fetchRecentActions();
       })
       .withFailureHandler(err => {
@@ -579,9 +580,11 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         console.log('fetchRecentActions: Success:', result);
         if (result && result.success && Array.isArray(result.recent)) {
           console.log('fetchRecentActions: Rendering', result.recent.length, 'items');
+          console.log('fetchRecentActions: Data sample:', result.recent[0]);
           renderRecent(result.recent);
         } else {
           console.log('fetchRecentActions: No valid data, showing empty');
+          console.log('fetchRecentActions: Result was:', result);
           renderRecent([]);
         }
       })
