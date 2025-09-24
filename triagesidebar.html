@@ -355,6 +355,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-data-fetch" style="margin: 5px; padding: 5px 10px;">Test Data Fetch</button>
   <button id="test-direct" style="margin: 5px; padding: 5px 10px;">Test Direct</button>
   <button id="test-recent-actions" style="margin: 5px; padding: 5px 10px;">Test Recent Actions</button>
+  <button id="test-get-recent" style="margin: 5px; padding: 5px 10px;">Test Get Recent</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -546,24 +547,21 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
           return;
         }
         
-        const {zonesPayload, layout, doctors, recent, now} = result;
-        console.log('fetchAllAndRender: Destructured data:', {zonesPayload, layout, doctors, recent, now});
+        const {zonesPayload, layout, doctors, now} = result;
+        console.log('fetchAllAndRender: Main data destructured:', {zonesPayload, layout, doctors, now});
         console.log('fetchAllAndRender: layout type =', typeof layout);
         console.log('fetchAllAndRender: layout isArray =', Array.isArray(layout));
         console.log('fetchAllAndRender: layout length =', layout ? layout.length : 'N/A');
-        console.log('fetchAllAndRender: recent type =', typeof recent);
-        console.log('fetchAllAndRender: recent isArray =', Array.isArray(recent));
-        console.log('fetchAllAndRender: recent length =', recent ? recent.length : 'N/A');
-        console.log('fetchAllAndRender: recent data =', recent);
         
         currentData=zonesPayload;
         currentLayout=Array.isArray(layout)?layout:null;
         console.log('fetchAllAndRender: currentLayout =', currentLayout);
         renderZones(zonesPayload, layout);
         populateDoctors(doctors);
-        console.log('fetchAllAndRender: About to call renderRecent with:', recent || []);
-        renderRecent(recent || []);
         document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
+        
+        // Separately load recent actions (won't break main functionality)
+        fetchRecentActions();
       })
       .withFailureHandler(err => {
         console.error('fetchAllAndRender: Error fetching data:', err);
@@ -572,6 +570,27 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         renderZones({ beds: {} }, []);
       })
       .sidebarGetAll({ userName });
+  }
+  
+  function fetchRecentActions(){
+    console.log('=== fetchRecentActions CALLED ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('fetchRecentActions: Success:', result);
+        if (result && result.success && Array.isArray(result.recent)) {
+          console.log('fetchRecentActions: Rendering', result.recent.length, 'items');
+          renderRecent(result.recent);
+        } else {
+          console.log('fetchRecentActions: No valid data, showing empty');
+          renderRecent([]);
+        }
+      })
+      .withFailureHandler(err => {
+        console.error('fetchRecentActions: Error:', err);
+        console.log('fetchRecentActions: Error occurred, showing empty recent actions');
+        renderRecent([]);
+      })
+      .getRecentActions({ limit: 8 });
   }
 
   function buildFallbackLayout(){
@@ -1432,6 +1451,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Recent Actions test failed: ' + err);
       })
       .testGetRecentActions();
+  });
+  
+  document.getElementById('test-get-recent').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Get Recent ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Get Recent test result:', result);
+        alert('Get Recent test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Get Recent test failed:', err);
+        alert('Get Recent test failed: ' + err);
+      })
+      .getRecentActions({ limit: 5 });
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {

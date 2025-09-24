@@ -386,6 +386,40 @@ function testGetRecentActions() {
   }
 }
 
+/** 
+ * Separate function to get recent actions - called independently from sidebarGetAll
+ * This prevents recent actions from breaking the main data loading function
+ */
+function getRecentActions(payload) {
+  console.log('=== GET_RECENT_ACTIONS FUNCTION CALLED ===');
+  console.log('getRecentActions: payload:', payload);
+  
+  try {
+    const limit = (payload && payload.limit) ? payload.limit : 8;
+    console.log('getRecentActions: Using limit:', limit);
+    
+    const result = _getRecentActions_(limit);
+    console.log('getRecentActions: Got', result ? result.length : 0, 'items');
+    
+    return {
+      success: true,
+      recent: result || [],
+      count: result ? result.length : 0,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (e) {
+    console.error('getRecentActions: Error:', e);
+    return {
+      success: false,
+      recent: [],
+      count: 0,
+      error: e.toString(),
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testSidebarGetAllSimple() {
   return {
     zonesPayload: { beds: {} },
