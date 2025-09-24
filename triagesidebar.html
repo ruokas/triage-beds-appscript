@@ -356,6 +356,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-direct" style="margin: 5px; padding: 5px 10px;">Test Direct</button>
   <button id="test-recent-actions" style="margin: 5px; padding: 5px 10px;">Test Recent Actions</button>
   <button id="test-get-recent" style="margin: 5px; padding: 5px 10px;">Test Get Recent</button>
+  <button id="test-get-recent-direct" style="margin: 5px; padding: 5px 10px;">Test Get Recent Direct</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1468,6 +1469,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('Get Recent test failed: ' + err);
       })
       .getRecentActions({ limit: 5 });
+  });
+  
+  document.getElementById('test-get-recent-direct').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Get Recent Direct ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Get Recent Direct test result:', result);
+        alert('Get Recent Direct test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Get Recent Direct test failed:', err);
+        alert('Get Recent Direct test failed: ' + err);
+      })
+      .testGetRecentActionsDirect();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {

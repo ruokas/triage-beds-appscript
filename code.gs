@@ -315,6 +315,28 @@ function testSidebarGetAllDirect() {
   };
 }
 
+function testGetRecentActionsDirect() {
+  console.log('=== TEST GET RECENT ACTIONS DIRECT ===');
+  try {
+    const result = getRecentActions({ limit: 3 });
+    console.log('testGetRecentActionsDirect: Result:', result);
+    return {
+      success: true,
+      message: 'Direct getRecentActions test completed',
+      result: result,
+      timestamp: new Date().toISOString()
+    };
+  } catch (e) {
+    console.error('testGetRecentActionsDirect: Error:', e);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'Direct getRecentActions test failed',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testGetLiveZoneData() {
   console.log('=== TESTING getLiveZoneData FUNCTION ===');
   try {
