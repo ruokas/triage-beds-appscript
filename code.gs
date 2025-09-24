@@ -350,6 +350,61 @@ function testGetRecentActionsDirect() {
   }
 }
 
+function testLogSheetAccess() {
+  console.log('=== TEST LOG SHEET ACCESS ===');
+  try {
+    console.log('testLogSheetAccess: LOG_SHEET constant:', LOG_SHEET);
+    const sh = _sheet(LOG_SHEET);
+    console.log('testLogSheetAccess: Sheet found:', !!sh);
+    
+    if (!sh) {
+      return {
+        success: false,
+        message: 'Log sheet not found',
+        logSheetName: LOG_SHEET,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    console.log('testLogSheetAccess: Last row:', lastRow);
+    console.log('testLogSheetAccess: Last column:', lastCol);
+    
+    // Test header access
+    const headerRow = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    console.log('testLogSheetAccess: Headers:', headerRow);
+    
+    // Test data access (if any)
+    if (lastRow > 1) {
+      const dataRow = sh.getRange(2, 1, 1, lastCol).getValues()[0];
+      console.log('testLogSheetAccess: First data row:', dataRow);
+    }
+    
+    return {
+      success: true,
+      message: 'Log sheet access test completed',
+      logSheetName: LOG_SHEET,
+      sheetFound: !!sh,
+      lastRow: lastRow,
+      lastColumn: lastCol,
+      headers: headerRow,
+      hasData: lastRow > 1,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (e) {
+    console.error('testLogSheetAccess: Error:', e);
+    console.error('testLogSheetAccess: Error stack:', e.stack);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'Log sheet access test failed',
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
 function testSidebarGetAllDirect() {
   console.log('=== DIRECT TEST FUNCTION CALLED ===');
   return {

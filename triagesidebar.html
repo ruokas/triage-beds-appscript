@@ -359,6 +359,7 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <button id="test-get-recent-direct" style="margin: 5px; padding: 5px 10px;">Test Get Recent Direct</button>
   <button id="test-function-exists" style="margin: 5px; padding: 5px 10px;">Test Function Exists</button>
   <button id="test-get-recent-actions-direct" style="margin: 5px; padding: 5px 10px;">Test _getRecentActions_ Direct</button>
+  <button id="test-log-sheet-access" style="margin: 5px; padding: 5px 10px;">Test Log Sheet Access</button>
   <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
 </div>
 
@@ -1513,6 +1514,20 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         alert('_getRecentActions_ Direct test failed: ' + err);
       })
       .testGetRecentActionsDirect();
+  });
+  
+  document.getElementById('test-log-sheet-access').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Log Sheet Access ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Log Sheet Access test result:', result);
+        alert('Log Sheet Access test completed: ' + JSON.stringify(result));
+      })
+      .withFailureHandler(err => {
+        console.error('Log Sheet Access test failed:', err);
+        alert('Log Sheet Access test failed: ' + err);
+      })
+      .testLogSheetAccess();
   });
   
   document.getElementById('manual-refresh').addEventListener('click', () => {
