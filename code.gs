@@ -429,8 +429,19 @@ function sidebarGetAll(payload) {
       zonesPayload = { beds: {} };
     }
     
-    // Step 4: Keep recent actions simple for now
-    const recent = [];
+    // Step 4: Get recent actions from log
+    console.log('sidebarGetAll: Getting recent actions...');
+    let recent = [];
+    try {
+      const recentActions = _getRecentActions_(8);
+      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions.length);
+      if (Array.isArray(recentActions)) {
+        recent = recentActions;
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error getting recent actions:', e);
+      recent = [];
+    }
     
     const result = {
       zonesPayload,
