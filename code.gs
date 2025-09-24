@@ -315,6 +315,30 @@ function testSidebarGetAllDirect() {
   };
 }
 
+function testGetLiveZoneData() {
+  console.log('=== TESTING getLiveZoneData FUNCTION ===');
+  try {
+    const result = getLiveZoneData('test-user');
+    console.log('testGetLiveZoneData: Success, result type:', typeof result);
+    console.log('testGetLiveZoneData: Has beds property:', !!(result && result.beds));
+    console.log('testGetLiveZoneData: Beds keys:', Object.keys((result && result.beds) || {}));
+    return {
+      success: true,
+      message: 'getLiveZoneData test completed',
+      resultType: typeof result,
+      hasBeds: !!(result && result.beds),
+      bedKeys: Object.keys((result && result.beds) || {})
+    };
+  } catch (e) {
+    console.error('testGetLiveZoneData: Error:', e);
+    return {
+      success: false,
+      error: e.toString(),
+      message: 'getLiveZoneData test failed'
+    };
+  }
+}
+
 function testSidebarGetAllSimple() {
   return {
     zonesPayload: { beds: {} },
@@ -419,19 +443,9 @@ function sidebarGetAll(payload) {
     console.log('sidebarGetAll: Keeping bed data simple...');
     const zonesPayload = { beds: {} };
     
-    // Step 4: Get recent actions from log
-    console.log('sidebarGetAll: Getting recent actions...');
-    let recent = [];
-    try {
-      const recentActions = _getRecentActions_(8);
-      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions.length);
-      if (Array.isArray(recentActions)) {
-        recent = recentActions;
-      }
-    } catch (e) {
-      console.error('sidebarGetAll: Error getting recent actions:', e);
-      recent = [];
-    }
+    // Step 4: Keep recent actions simple for now
+    console.log('sidebarGetAll: Keeping recent actions simple...');
+    const recent = [];
     
     const result = {
       zonesPayload,
