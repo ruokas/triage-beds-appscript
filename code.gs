@@ -449,7 +449,7 @@ function testBasicAccess() {
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
-  console.log('=== SIDEBAR_GET_ALL FUNCTION CALLED ===');
+  console.log('=== SIDEBAR_GET_ALL FUNCTION CALLED - v2024.09.24.14:00 ===');
   console.log('sidebarGetAll: Starting with payload:', payload);
   
   try {
