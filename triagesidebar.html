@@ -345,6 +345,14 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   <span class="dot occ"></span> Užimta
 </div>
 
+<!-- Debug buttons -->
+<div style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+  <h4>Debug Tools</h4>
+  <button id="test-basic-access" style="margin: 5px; padding: 5px 10px;">Test Basic Access</button>
+  <button id="test-data-fetch" style="margin: 5px; padding: 5px 10px;">Test Data Fetch</button>
+  <button id="manual-refresh" style="margin: 5px; padding: 5px 10px;">Manual Refresh</button>
+</div>
+
 <div id="zones"></div>
 <div id="last-updated"></div>
 
@@ -1274,6 +1282,40 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
   }
   function sidebarGetAll(){} // placeholder
   sidebarInit();
+  
+  // Debug button event listeners
+  document.getElementById('test-basic-access').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Basic Access ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Manual basic access test result:', result);
+        alert('Basic access test completed. Check console for details.');
+      })
+      .withFailureHandler(err => {
+        console.error('Manual basic access test failed:', err);
+        alert('Basic access test failed: ' + err);
+      })
+      .testBasicAccess();
+  });
+  
+  document.getElementById('test-data-fetch').addEventListener('click', () => {
+    console.log('=== MANUAL TEST: Data Fetch ===');
+    google.script.run
+      .withSuccessHandler(result => {
+        console.log('Manual data fetch result:', result);
+        alert('Data fetch test completed. Check console for details.');
+      })
+      .withFailureHandler(err => {
+        console.error('Manual data fetch test failed:', err);
+        alert('Data fetch test failed: ' + err);
+      })
+      .sidebarGetAll({ userName: 'manual-test' });
+  });
+  
+  document.getElementById('manual-refresh').addEventListener('click', () => {
+    console.log('=== MANUAL REFRESH ===');
+    fetchAllAndRender();
+  });
 
   // form input listeners for confirm button readiness
   const nameEl = document.getElementById('fld-name');
