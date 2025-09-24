@@ -421,8 +421,10 @@ function sidebarGetAll(payload) {
     try {
       const realBedData = getLiveZoneData(userName);
       console.log('sidebarGetAll: Bed data retrieved successfully');
+      console.log('sidebarGetAll: realBedData structure:', JSON.stringify(realBedData, null, 2));
       if (realBedData && typeof realBedData === 'object') {
         zonesPayload = realBedData;
+        console.log('sidebarGetAll: zonesPayload.beds keys:', Object.keys(zonesPayload.beds || {}));
       }
     } catch (e) {
       console.error('sidebarGetAll: Error getting bed data:', e);
