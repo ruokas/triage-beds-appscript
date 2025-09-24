@@ -497,20 +497,9 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error with real bed data:', e);
     }
     
-    // Step 4: Recent actions (now fixed!)
+    // Step 4: Recent actions temporarily disabled - keeps breaking sidebarGetAll 
     let recent = [];
-    try {
-      console.log('sidebarGetAll: Getting recent actions with fixed column mapping...');
-      const recentActions = _getRecentActions_(8);
-      console.log('sidebarGetAll: Recent actions retrieved, count =', recentActions ? recentActions.length : 'null');
-      if (Array.isArray(recentActions)) {
-        recent = recentActions;
-        console.log('sidebarGetAll: Recent actions integrated successfully');
-      }
-    } catch (e) {
-      console.error('sidebarGetAll: Error with recent actions (fallback to empty):', e);
-      recent = [];
-    }
+    console.log('sidebarGetAll: Recent actions disabled to maintain system stability');
     
     const result = {
       zonesPayload: zonesPayload,
