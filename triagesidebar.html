@@ -551,12 +551,17 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
         console.log('fetchAllAndRender: layout type =', typeof layout);
         console.log('fetchAllAndRender: layout isArray =', Array.isArray(layout));
         console.log('fetchAllAndRender: layout length =', layout ? layout.length : 'N/A');
+        console.log('fetchAllAndRender: recent type =', typeof recent);
+        console.log('fetchAllAndRender: recent isArray =', Array.isArray(recent));
+        console.log('fetchAllAndRender: recent length =', recent ? recent.length : 'N/A');
+        console.log('fetchAllAndRender: recent data =', recent);
         
         currentData=zonesPayload;
         currentLayout=Array.isArray(layout)?layout:null;
         console.log('fetchAllAndRender: currentLayout =', currentLayout);
         renderZones(zonesPayload, layout);
         populateDoctors(doctors);
+        console.log('fetchAllAndRender: About to call renderRecent with:', recent || []);
         renderRecent(recent || []);
         document.getElementById("last-updated").textContent="Atnaujinta: "+formatTime(now);
       })
@@ -790,21 +795,40 @@ console.log('=== SIDEBAR SCRIPT STARTING ===');
 
   // ------- Recent -------
   function renderRecent(list){
+    console.log('renderRecent called with:', list);
+    console.log('renderRecent list length:', list ? list.length : 'null');
+    
     const box=document.getElementById('recent-actions');
-    if(!box) return;
+    if(!box) {
+      console.error('renderRecent: recent-actions element not found!');
+      return;
+    }
+    
+    console.log('renderRecent: recent-actions element found');
+    
     if(!list.length){
+      console.log('renderRecent: No recent actions, showing empty message');
       box.innerHTML='<div class="ritem"><div class="t">—</div><div class="s">Nėra įrašų</div></div>';
       return;
     }
-    box.innerHTML=list.map(it=>{
+    
+    console.log('renderRecent: Processing', list.length, 'items');
+    const htmlContent = list.map((it, index) => {
       let t=''; 
       try{ 
         const date = new Date(it.ts);
         t = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-      }catch(e){}
+      }catch(e){
+        console.error('renderRecent: Error parsing date for item', index, ':', e);
+      }
       const s=it.summary || (it.action || '');
+      console.log('renderRecent item', index, ':', {time: t, summary: s, raw: it});
       return `<div class="ritem"><div class="t">${t}</div><div class="s">${escapeHtml(s)}</div></div>`;
     }).join('');
+    
+    console.log('renderRecent: Setting HTML content:', htmlContent);
+    box.innerHTML = htmlContent;
+    console.log('renderRecent: Content set successfully');
   }
   function escapeHtml(str){
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
