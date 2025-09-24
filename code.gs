@@ -382,24 +382,58 @@ function sidebarGetAll(payload) {
   console.log('sidebarGetAll: Starting with payload:', payload);
   
   try {
-    console.log('sidebarGetAll: About to return basic result');
+    const userName = (payload && typeof payload === 'object') ? payload.userName : '';
+    console.log('sidebarGetAll: userName =', userName);
     
-    const result = {
-      zonesPayload: { beds: {} },
-      layout: [
+    // Step 1: Create layout from ZONOS_LAYOUT
+    console.log('sidebarGetAll: Creating layout from ZONOS_LAYOUT...');
+    let layout = [];
+    try {
+      layout = ZONOS_LAYOUT.map(zone => ({
+        name: zone.name,
+        rows: zone.rows.map(row => row.slice())
+      }));
+      console.log('sidebarGetAll: Layout created successfully, length =', layout.length);
+    } catch (e) {
+      console.error('sidebarGetAll: Error creating layout:', e);
+      layout = [
         { name: "Zona IT", rows: [["IT1","IT2"]] },
         { name: "Zona 1", rows: [["1","2","3","P1","P2","P3"]] }
-      ],
-      doctors: ["Dr. Test"],
-      recent: [],
+      ];
+    }
+    
+    // Step 2: Get doctors (simple test first)
+    console.log('sidebarGetAll: Getting doctors...');
+    let doctors = ["Dr. Test"];
+    try {
+      const realDoctors = getDoctorsList_();
+      console.log('sidebarGetAll: Real doctors retrieved, count =', realDoctors.length);
+      if (Array.isArray(realDoctors) && realDoctors.length > 0) {
+        doctors = realDoctors;
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error getting doctors:', e);
+    }
+    
+    // Step 3: Keep zones payload simple for now
+    const zonesPayload = { beds: {} };
+    
+    // Step 4: Keep recent actions simple for now
+    const recent = [];
+    
+    const result = {
+      zonesPayload,
+      layout,
+      doctors,
+      recent,
       now: new Date().toISOString()
     };
     
-    console.log('sidebarGetAll: Returning basic result:', result);
+    console.log('sidebarGetAll: Returning result with real layout and doctors');
     return result;
     
   } catch (e) {
-    console.error('sidebarGetAll: Error in simple version:', e);
+    console.error('sidebarGetAll: Error in improved version:', e);
     return {
       zonesPayload: { beds: {} },
       layout: [],
