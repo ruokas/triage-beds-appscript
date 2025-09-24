@@ -415,8 +415,19 @@ function sidebarGetAll(payload) {
       console.error('sidebarGetAll: Error getting doctors:', e);
     }
     
-    // Step 3: Keep zones payload simple for now
-    const zonesPayload = { beds: {} };
+    // Step 3: Get bed data from sheets
+    console.log('sidebarGetAll: Getting bed data...');
+    let zonesPayload = { beds: {} };
+    try {
+      const realBedData = getLiveZoneData(userName);
+      console.log('sidebarGetAll: Bed data retrieved successfully');
+      if (realBedData && typeof realBedData === 'object') {
+        zonesPayload = realBedData;
+      }
+    } catch (e) {
+      console.error('sidebarGetAll: Error getting bed data:', e);
+      zonesPayload = { beds: {} };
+    }
     
     // Step 4: Keep recent actions simple for now
     const recent = [];
