@@ -269,19 +269,6 @@ function _logAction_(o) {
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
-  console.log('=== SIDEBAR_GET_ALL FUNCTION CALLED (MAIN BRANCH) ===');
-  console.log('sidebarGetAll: Starting with payload:', payload);
-  
-  // IMMEDIATE TEST: Return a simple object to see if function works at all
-  const simpleResult = {
-    zonesPayload: { beds: {} },
-    layout: [{ name: "Test Zone", rows: [["1", "2"]] }],
-    doctors: ["Test Doctor"],
-    recent: [],
-    now: new Date().toISOString()
-  };
-  console.log('sidebarGetAll: Returning simple result immediately:', simpleResult);
-  return simpleResult;
   
   const userName = (payload && typeof payload === 'object') ? payload.userName : '';
   const layout = ZONOS_LAYOUT.map(zone => ({
