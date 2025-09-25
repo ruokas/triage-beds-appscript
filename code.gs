@@ -269,7 +269,6 @@ function _logAction_(o) {
 
 /** ===================== DATA FOR SIDEBAR ===================== **/
 function sidebarGetAll(payload) {
-  
   const userName = (payload && typeof payload === 'object') ? payload.userName : '';
   const layout = ZONOS_LAYOUT.map(zone => ({
     name: zone.name,
@@ -976,4 +975,3 @@ function dischargePatient(payload) {
     lock.releaseLock();
   }
 }
-
