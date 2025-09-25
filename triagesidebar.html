@@ -26,11 +26,9 @@
     .progress-fill{background:linear-gradient(90deg,#22c55e,#86efac);height:100%;width:0%;transition:width .25s ease}
     .bed-rows{display:flex;flex-direction:column;gap:4px}
     .bed-row{display:flex;flex-wrap:wrap;gap:4px}
-    .bed-row.amb-grid{display:grid;grid-template-columns:repeat(5,minmax(52px,1fr));gap:4px}
-    @media(max-width:480px){ .bed-row.amb-grid{grid-template-columns:repeat(4,minmax(52px,1fr));} }
 
     .bed{
-      padding:4px 6px;
+      padding:4px 7px;
       border-radius:6px;background:var(--chip);border:1px solid var(--line);
       font-size:12px;line-height:1.4;user-select:none;white-space:nowrap;cursor:default
     }
@@ -82,53 +80,6 @@
     .icon-btn:hover{background:#f9fafb}
     .help-kbd{display:inline-block;border:1px solid #e5e7eb;border-bottom-width:2px;border-radius:6px;padding:0 6px;font-size:12px;background:#fff;margin:0 2px}
 
-  /* Gydytojų vieno paspaudimo sąrašas */
-  .doctor-list{display:flex;flex-wrap:wrap;gap:6px}
-  .doc-btn{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font-size:12px;cursor:pointer}
-  .doc-btn:hover{background:#f9fafb}
-  .doc-btn.active{background:var(--free-bg);color:var(--free);border-color:#81c38b;box-shadow:inset 0 0 0 2px rgba(34,197,94,.25)}
-  .doc-btn[disabled]{opacity:.6;cursor:not-allowed}
-
-  /* Settings panel */
-  .settings{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px;margin-top:6px}
-  .settings .header{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
-  .settings .title{margin:0;font-size:12px;color:var(--muted);font-weight:600}
-  .chev{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;transition:transform .2s ease;color:var(--muted)}
-  .settings.collapsed .chev{transform:rotate(-90deg)}
-  .settings-body{margin-top:6px}
-  .settings.collapsed .settings-body{display:none}
-  .setting-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px dashed var(--line)}
-  .setting-row:first-of-type{border-top:none}
-  .switch{position:relative;width:38px;height:22px;background:#e5e7eb;border-radius:999px;cursor:pointer;border:1px solid var(--line)}
-  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.15);transition:left .2s ease}
-  .switch.on{background:#86efac;border-color:#81c38b}
-  .switch.on::after{left:20px}
-
-  /* Dark theme (higher contrast) */
-  .theme-dark{
-    --bg:#0b1020; --card:#0c1326; --text:#e6edf3; --muted:#9aa6b2; --line:#22304d; --chip:#12203d;
-    --free-bg:#0f2e22; --occ-bg:#3a1520; --res-bg:#3a2612;
-  }
-  .theme-dark .btn:hover,.theme-dark .icon-btn:hover,.theme-dark .doc-btn:hover{background:#0d142a}
-  .theme-dark .zone,.theme-dark .recent,.theme-dark .settings,.theme-dark .modal{border-color:#22304d}
-  .theme-dark .chip.active{box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
-  .theme-dark .bed{background:var(--chip); border-color:var(--line); color:var(--text)}
-  .theme-dark .bed.free{background:#0f2e22; border-color:#14532d; color:#34d399}
-  .theme-dark .bed.occupied{background:#3a1520; border-color:#7f1d1d; color:#f87171}
-  .theme-dark .bed.reserved{background:#3a2612; border-color:#b45309; color:#fbbf24}
-
-  /* Bed picker - fixed overlay - Updated v2 */
-  .bed-picker{position:fixed !important;top:50% !important;left:50% !important;transform:translate(-50%,-50%) !important;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);padding:12px;z-index:10051 !important;display:none;width:380px !important;max-width:90vw;max-height:90vh !important;visibility:visible;opacity:1;pointer-events:auto;margin:0 !important}
-  .bed-picker[aria-hidden="false"]{display:block !important}
-  .bed-picker .bp-head{font-size:13px;color:var(--text);margin-bottom:8px;font-weight:600}
-  .bed-picker .bp-body{display:grid;grid-template-columns:repeat(6,minmax(50px,1fr));gap:4px;max-height:75vh;overflow-y:auto;overflow-x:hidden;padding:4px}
-  .bed-btn{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;cursor:pointer;transition:all .15s ease}
-  .bed-btn.free{background:var(--free-bg);border-color:#81c38b;color:var(--free)}
-  .bed-btn.free:hover{filter:brightness(0.98);transform:scale(1.02)}
-  .bed-btn.disabled{opacity:.5;cursor:not-allowed}
-  .bed-btn.changing{opacity:.7;pointer-events:none;background:#f3f4f6}
-  .bed-picker-backdrop{position:fixed !important;inset:0 !important;background:rgba(0,0,0,.3);z-index:10049 !important;display:none;pointer-events:auto;margin:0 !important;padding:0 !important}
-  .bed-picker-backdrop[aria-hidden="false"]{display:block !important}
 
     /* Undo juosta */
     .undo-bar{position:fixed;right:12px;bottom:12px;display:none;gap:8px;align-items:center;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9500}
@@ -159,29 +110,6 @@
     .confirm-pop .body{padding:10px}
     .confirm-pop .title{font-size:13px; margin-bottom:8px}
     .confirm-pop .actions{display:flex; gap:8px; justify-content:flex-end; padding:8px}
-
-    /* Bed Picker */
-    .bed-picker{
-      position:absolute;
-      top:100%; left:0;
-      background:#fff; border:1px solid var(--line);
-      border-radius:8px; box-shadow:0 10px 24px rgba(0,0,0,.15);
-      width:200px; max-height:200px; overflow-y:auto;
-      z-index:10002;
-    }
-    .bed-picker .bp-head{
-      padding:8px 10px; border-bottom:1px solid var(--line);
-      font-size:12px; font-weight:600; color:var(--text);
-    }
-    .bed-picker .bp-body{padding:4px 0}
-    .bed-picker .bp-item{
-      padding:8px 10px; cursor:pointer;
-      font-size:12px; color:var(--text);
-      border-bottom:1px solid var(--line);
-    }
-    .bed-picker .bp-item:last-child{border-bottom:none}
-    .bed-picker .bp-item:hover{background:#f3f4f6}
-    .bed-picker .bp-item.active{background:var(--free-bg); color:var(--free); font-weight:600}
   </style>
 </head>
 <body>
@@ -314,37 +242,11 @@
   <div id="recent-actions" class="rlist"></div>
 </div>
 
-<!-- Nustatymai -->
-<div class="settings collapsed" id="settings">
-  <div class="header" id="settings-header">
-    <div class="title">Nustatymai</div>
-    <div class="chev">▸</div>
-  </div>
-  <div class="settings-body">
-  <div class="setting-row">
-    <div>Rodyti laukiančius 4h+ (įspėjimas)</div>
-    <div id="sw-wait" class="switch"></div>
-  </div>
-  <div class="setting-row">
-    <div>Tamsi tema</div>
-    <div id="sw-dark" class="switch"></div>
-  </div>
-  <div style="font-size:11px;color:var(--muted);margin-top:6px">Nustatymai saugomi naršyklėje.</div>
-  </div>
-
 <!-- Modal (įrašyti pacientą) -->
 <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="modal" role="document" id="modal">
     <h3 id="modal-title">Įrašyti pacientą</h3>
     <div class="hint" id="modal-subtitle">Kol pildote duomenis, ši lova pažymėta kaip „rezervuota“.</div>
-
-    <div class="field">
-      <label for="fld-bed">Lova</label>
-      <div style="display:flex;gap:6px;align-items:center;position:relative">
-        <input type="text" id="fld-bed" readonly style="max-width:120px" />
-        <button type="button" class="btn" id="btn-bed-change" title="Keisti lovą">Keisti…</button>
-      </div>
-    </div>
 
     <div class="field">
       <label for="fld-name">Pacientas</label>
@@ -366,8 +268,7 @@
 
     <div class="field">
       <label for="fld-doctor">Gydytojas</label>
-      <input type="hidden" id="fld-doctor" />
-      <div id="doctor-list" class="doctor-list"></div>
+      <select id="fld-doctor"></select>
     </div>
 
     <div class="field">
@@ -409,13 +310,6 @@
   </div>
 </div>
 
-<!-- Bed picker - outside modal structure -->
-<div id="bed-picker-backdrop" class="bed-picker-backdrop" aria-hidden="true"></div>
-<div id="bed-picker" class="bed-picker" aria-hidden="true">
-  <div class="bp-head">Pasirinkite lovą</div>
-  <div class="bp-body" id="bed-picker-body"></div>
-</div>
-
 <script>
   // ------- Būsena -------
   let currentData=null;
@@ -431,40 +325,6 @@
 
   function formatTime(d){ return new Date(d).toLocaleTimeString(); }
   const WAIT_ALERT_MINUTES = 240;
-  const SETTINGS_KEY = 'triageBedsSidebar.settings';
-  let settings = { showWaitAlert:true, darkMode:false, settingsCollapsed:true };
-
-  function loadSettings(){
-    let hadStored=false;
-    try{
-      const raw=localStorage.getItem(SETTINGS_KEY);
-      if(raw){
-        const obj=JSON.parse(raw);
-        if(obj&&typeof obj==='object'){ settings={...settings,...obj}; hadStored=true; }
-      }
-    } catch(e){}
-    // One-time init: ensure collapsed by default if never initialized
-    if(!settings._collapsedInitialized){
-      settings.settingsCollapsed = true;
-      settings._collapsedInitialized = true;
-      try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
-    }
-    applySettings();
-    syncSettingsUI();
-  }
-  function saveSettings(){
-    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
-  }
-  function applySettings(){
-    document.body.classList.toggle('theme-dark', !!settings.darkMode);
-    const s=document.getElementById('settings');
-    if(s){ s.classList.toggle('collapsed', !!settings.settingsCollapsed); }
-  }
-  function syncSettingsUI(){
-    const w=document.getElementById('sw-wait'); const d=document.getElementById('sw-dark');
-    if(w){ w.classList.toggle('on', !!settings.showWaitAlert); }
-    if(d){ d.classList.toggle('on', !!settings.darkMode); }
-  }
   function calcWaitMinutes(isoString){
     if(!isoString) return null;
     const dt = new Date(isoString);
@@ -549,10 +409,7 @@
 
       const rowsEl=document.createElement("div"); rowsEl.className="bed-rows";
       rows.forEach(r=>{
-        const rowEl=document.createElement("div");
-        // Ambulatorijos eilėmis perteikiam kaip tolygų grid, kad neliktų "skylių"
-        const isAmb = zoneName === 'Ambulatorija';
-        rowEl.className = isAmb ? 'bed-row amb-grid' : 'bed-row';
+        const rowEl=document.createElement("div"); rowEl.className="bed-row";
         r.forEach(label=>{
           const b=bedMap.get(label); if(!b) return;
           const el=document.createElement("div"); el.className="bed"; el.textContent=b.label;
@@ -659,7 +516,7 @@
 
           if(waitMinutes!==null && b.occupied){
             el.setAttribute("data-wait-minutes", String(waitMinutes));
-            if(settings.showWaitAlert && waitMinutes>WAIT_ALERT_MINUTES){
+            if(waitMinutes>WAIT_ALERT_MINUTES){
               el.classList.add("wait-long");
             }
             const waitText = `Laukia ${waitMinutes} min.`;
@@ -683,27 +540,12 @@
   }
 
   function populateDoctors(list){
-    const hidden=document.getElementById("fld-doctor");
-    const box=document.getElementById("doctor-list");
-    if(!box || !hidden) return;
-    const cur=hidden.value;
-    box.innerHTML="";
+    const sel=document.getElementById("fld-doctor");
+    const cur=sel.value; sel.innerHTML="";
+    const def=document.createElement("option"); def.value=""; def.textContent="— Pasirinkite gydytoją —"; sel.appendChild(def);
     (list||[]).forEach(name=>{
-      const btn=document.createElement("button");
-      btn.type="button";
-      btn.className="doc-btn"+(name===cur?" active":"");
-      btn.textContent=name;
-      btn.addEventListener("click",()=>{
-        hidden.value=name;
-        // vizualiai pažymime aktyvų
-        box.querySelectorAll('.doc-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        // jei forma įjungta – galimai įjungti patvirtinimą
-        validateConfirmEnabled();
-        // po gydytojo pasirinkimo fokusas į komentarą
-        const c=document.getElementById('fld-comment'); if(c){ c.focus(); }
-      });
-      box.appendChild(btn);
+      const o=document.createElement("option"); o.value=name; o.textContent=name;
+      if(name===cur) o.selected=true; sel.appendChild(o);
     });
   }
 
@@ -736,8 +578,8 @@
       if(modalTabFocusTarget){ modalTabFocusTarget.focus(); }
     }
   };
-  function ensureModalTabHandler(nameInput){
-    modalTabFocusTarget = document.querySelector('#doctor-list .doc-btn') || null;
+  function ensureModalTabHandler(nameInput, doctorSel){
+    modalTabFocusTarget = doctorSel || null;
     if(!modalTabHandlerAttached && nameInput){
       nameInput.addEventListener("keydown", modalTabHandler);
       modalTabHandlerAttached = true;
@@ -754,7 +596,8 @@
 
     // Auto-focus + Tab seka: Vardas -> Gydytojas
     const nameInput=document.getElementById("fld-name");
-    ensureModalTabHandler(nameInput);
+    const doctorSel=document.getElementById("fld-doctor");
+    ensureModalTabHandler(nameInput, doctorSel);
     const scheduleNameFocus=()=>{
       if(!nameInput || !isModalOpen()) return;
       setTimeout(()=>{
@@ -762,37 +605,24 @@
       },0);
     };
 
-    // Fokusas iš karto, nelaukiant duomenų įkėlimo / rezervacijos
-    scheduleNameFocus();
-
     setFormEnabled(false); showReserveStatus(true);
 
     if(alreadyMine){
       reservation.ok=true;
       setFormEnabled(true);
       showReserveStatus(false);
-      // fokusas jau nustatytas anksčiau; paliekame nekeičiant
+      scheduleNameFocus();
       startKeepAlive(bedLabel);
-      validateConfirmEnabled();
       return;
     }
 
     const userName = getLocalUserName();
-    google.script.run
-      .withFailureHandler(err=>{
-        setFormEnabled(true);
-        showReserveStatus(false);
-        const msg = (err && err.message) ? err.message : String(err || 'Nežinoma klaida');
-        alert('Rezervacijos klaida: ' + msg);
-        if(isModalOpen()){ scheduleNameFocus(); }
-      })
-      .withSuccessHandler(res=>{
+    google.script.run.withSuccessHandler(res=>{
       if(res && res.ok){
         reservation.ok=true;
         setFormEnabled(true);
         showReserveStatus(false);
-        // fokusas jau aktyvus
-        validateConfirmEnabled();
+        scheduleNameFocus();
         startKeepAlive(bedLabel);
       }else{
         reservation.ok=false;
@@ -821,23 +651,9 @@
     fetchAllAndRender();
   }
   function setFormEnabled(enabled){
-    ["fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
+    ["fld-name","fld-doctor","fld-comment","btn-confirm"].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=!enabled;
     });
-    // Vardą paliekame visada aktyvų, kad būtų galima įvesti iškart
-    const nameEl=document.getElementById("fld-name"); if(nameEl) nameEl.disabled=false;
-    // taip pat įjungiame/išjungiame gydytojų mygtukus
-    document.querySelectorAll('#doctor-list .doc-btn').forEach(btn=>{ btn.disabled = !enabled; });
-  }
-
-  function validateConfirmEnabled(){
-    const btn=document.getElementById("btn-confirm"); if(!btn) return;
-    const hasName = (document.getElementById("fld-name").value||"").trim();
-    const doctor = (document.getElementById("fld-doctor").value||"").trim();
-    const triageVal = (document.getElementById("fld-triage").value||"").trim();
-    const isAmb = reservation.bedLabel && reservation.bedLabel.startsWith('AMB');
-    const ready = !!(hasName && doctor && (isAmb || triageVal));
-    btn.disabled = !ready;
   }
   function showReserveStatus(show){ document.getElementById("reserve-status").style.display=show?"block":"none"; }
   function startKeepAlive(bedLabel){
@@ -861,112 +677,6 @@
     reservation.bedLabel=null;
   }
 
-  // Bed picker logic
-  const btnBedChange = document.getElementById('btn-bed-change');
-  const bedPicker = document.getElementById('bed-picker');
-  const bedPickerBackdrop = document.getElementById('bed-picker-backdrop');
-  const bedPickerBody = document.getElementById('bed-picker-body');
-  function hideBedPicker(){ 
-    if(bedPicker){ bedPicker.setAttribute('aria-hidden','true'); bedPicker.style.display='none'; }
-    if(bedPickerBackdrop){ bedPickerBackdrop.setAttribute('aria-hidden','true'); bedPickerBackdrop.style.display='none'; }
-  }
-  function showBedPicker(){ 
-    console.log('showBedPicker called', bedPicker, bedPickerBackdrop);
-    if(bedPicker){ 
-      bedPicker.setAttribute('aria-hidden','false'); 
-      bedPicker.style.display='block'; 
-      bedPicker.style.visibility='visible';
-      bedPicker.style.opacity='1';
-      bedPicker.style.zIndex='10051';
-      renderBedPicker(); 
-      console.log('Bed picker shown:', bedPicker.style.display, bedPicker.style.zIndex);
-    }
-    if(bedPickerBackdrop){ 
-      bedPickerBackdrop.setAttribute('aria-hidden','false'); 
-      bedPickerBackdrop.style.display='block'; 
-      bedPickerBackdrop.style.zIndex='10049';
-      console.log('Backdrop shown:', bedPickerBackdrop.style.display, bedPickerBackdrop.style.zIndex);
-    }
-  }
-  function renderBedPicker(){
-    if(!bedPickerBody || !currentData || !currentData.beds || !currentLayout) return;
-    
-    const entries = [];
-    
-    // Use the same order as main view (following currentLayout structure)
-    currentLayout.forEach(zone => {
-      zone.rows.forEach(row => {
-        row.forEach(bedLabel => {
-          // Find bed data for this label
-          const bedData = Object.values(currentData.beds)
-            .flatMap(z => z.beds || [])
-            .find(b => b.label === bedLabel);
-          
-          if (bedData) {
-            entries.push(bedData);
-          }
-        });
-      });
-    });
-    
-    bedPickerBody.innerHTML='';
-    entries.forEach(b=>{
-      const btn=document.createElement('button');
-      btn.type='button';
-      btn.textContent=b.label;
-      btn.className='bed-btn'+(b.occupied||b.reservedByOther?' disabled':' free');
-      btn.disabled=!!(b.occupied||b.reservedByOther);
-      btn.addEventListener('click',()=>{ selectNewBed(b.label, btn); });
-      bedPickerBody.appendChild(btn);
-    });
-  }
-  function selectNewBed(newLabel, btnEl){
-    const current = reservation.bedLabel;
-    if(!newLabel || newLabel===current) { hideBedPicker(); return; }
-    
-    // Visual feedback: disable button and show changing state
-    if(btnEl){ btnEl.classList.add('changing'); btnEl.disabled=true; }
-    
-    const userName = getLocalUserName();
-    
-    // Optimize: Reserve new bed first, then release old one
-    google.script.run
-      .withFailureHandler(err=>{
-        if(btnEl){ btnEl.classList.remove('changing'); btnEl.disabled=false; }
-        hideBedPicker();
-        alert('Nepavyko pakeisti lovos: '+((err&&err.message)||String(err||'')));
-      })
-      .withSuccessHandler(res=>{
-        if(!res||!res.ok){ 
-          if(btnEl){ btnEl.classList.remove('changing'); btnEl.disabled=false; }
-          hideBedPicker();
-          alert((res&&res.msg)?res.msg:'Nepavyko rezervuoti naujos lovos.'); 
-          return; 
-        }
-        
-        // Success: immediately update UI for better UX
-        reservation.bedLabel = newLabel; reservation.ok = true;
-        const bf=document.getElementById('fld-bed'); if(bf){ bf.value=newLabel; }
-        validateConfirmEnabled(); 
-        
-        // Hide picker immediately for faster response
-        hideBedPicker();
-        
-        // Release old reservation in background (non-blocking)
-        if(current) {
-          google.script.run.withFailureHandler(()=>{})
-            .releaseReservation({ bedLabel:current, userName });
-        }
-        
-        // Start keep-alive for new bed
-        startKeepAlive(newLabel);
-      })
-      .reserveBed({ bedLabel:newLabel, userName });
-  }
-  if(btnBedChange){ btnBedChange.addEventListener('click',()=>{ const vis = bedPicker && bedPicker.getAttribute('aria-hidden')==='false'; if(vis) hideBedPicker(); else showBedPicker(); }); }
-  if(bedPickerBackdrop){ bedPickerBackdrop.addEventListener('click', hideBedPicker); }
-  document.addEventListener('click',(e)=>{ if(!e.target.closest('#bed-picker') && !e.target.closest('#btn-bed-change')) hideBedPicker(); });
-
   // Triažo chip'ai + 1–5
   document.addEventListener('click',(e)=>{
     if(e.target.classList && e.target.classList.contains('chip')){
@@ -974,7 +684,6 @@
       document.getElementById('fld-triage').value=v;
       document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
       e.target.classList.add('active');
-      validateConfirmEnabled();
     }
   });
   document.addEventListener('keydown',(e)=>{
@@ -995,7 +704,8 @@
       if(el){ document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
     }
     if(e.key==="Enter"){
-      e.preventDefault();
+      const active=document.activeElement;
+      if(active && active.id==="fld-comment" && !e.ctrlKey) return;
       const btn=document.getElementById("btn-confirm");
       if(!btn.disabled) btn.click();
     }
@@ -1004,6 +714,7 @@
   // Mygtukai
   document.getElementById("btn-cancel").addEventListener("click", cancelModal);
   document.getElementById("btn-confirm").addEventListener("click", ()=>{
+    if(!reservation.ok) return;
     const btn=document.getElementById("btn-confirm");
     btn.textContent="Įrašoma…"; btn.disabled=true;
 
@@ -1025,13 +736,7 @@
       alert("Pasirinkite triažo kategoriją (1–5)."); btn.textContent="Patvirtinti"; btn.disabled=false; return;
     }
 
-    google.script.run
-      .withFailureHandler(err=>{
-        btn.textContent="Patvirtinti"; btn.disabled=false;
-        const msg = (err && err.message) ? err.message : String(err || 'Nežinoma klaida');
-        alert('Įrašymo klaida: ' + msg);
-      })
-      .withSuccessHandler(res=>{
+    google.script.run.withSuccessHandler(res=>{
       btn.textContent="Patvirtinti"; btn.disabled=false;
       if(!res||!res.ok){ alert((res&&res.msg)?res.msg:"Nepavyko įrašyti į lentą."); return; }
       closeModal(); releaseReservation(); clearForm();
@@ -1045,9 +750,6 @@
     document.getElementById("fld-doctor").value="";
     document.getElementById("fld-comment").value="";
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-    const box=document.getElementById('doctor-list');
-    if(box){ box.querySelectorAll('.doc-btn').forEach(b=>b.classList.remove('active')); }
-    validateConfirmEnabled();
   }
 
   // Undo
@@ -1149,22 +851,9 @@
   window.addEventListener('resize', ()=>{ hideCtxMenu(); hideConfirm(); });
 
   // Start
-  function sidebarInit(){ loadSettings(); fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
+  function sidebarInit(){ fetchAllAndRender(); refreshTimer=setInterval(fetchAllAndRender,10000); }
   function sidebarGetAll(){} // placeholder
   sidebarInit();
-
-  // form input listeners for confirm button readiness
-  const nameEl = document.getElementById('fld-name');
-  // settings listeners
-  const swWait=document.getElementById('sw-wait');
-  const swDark=document.getElementById('sw-dark');
-  if(swWait){ swWait.addEventListener('click',()=>{ settings.showWaitAlert=!settings.showWaitAlert; saveSettings(); syncSettingsUI(); fetchAllAndRender(); }); }
-  if(swDark){ swDark.addEventListener('click',()=>{ settings.darkMode=!settings.darkMode; saveSettings(); applySettings(); }); }
-  const settingsHeader=document.getElementById('settings-header');
-  if(settingsHeader){ settingsHeader.addEventListener('click',()=>{ settings.settingsCollapsed=!settings.settingsCollapsed; saveSettings(); applySettings(); }); }
-  const commentEl = document.getElementById('fld-comment');
-  if(nameEl){ nameEl.addEventListener('input', validateConfirmEnabled); }
-  if(commentEl){ commentEl.addEventListener('input', validateConfirmEnabled); }
 </script>
 
 </body>
